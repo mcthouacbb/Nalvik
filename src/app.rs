@@ -102,8 +102,10 @@ impl<'a> ApplicationHandler for App<'a> {
                     return;
                 }
 
-                let size = self.size;
-                render(self.pixels_mut().frame_mut(), size);
+                if !self.minimized {
+                    let size = self.size;
+                    render(self.pixels_mut().frame_mut(), size);
+                }
 
                 self.pixels().render().unwrap();
                 self.window().request_redraw();
