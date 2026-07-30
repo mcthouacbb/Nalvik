@@ -3,14 +3,18 @@ use std::sync::Arc;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     application::ApplicationHandler,
+    dpi::PhysicalSize,
     event::WindowEvent,
     event_loop::ActiveEventLoop,
     window::{Window, WindowId},
 };
 
+use crate::render::render;
+
 pub struct App<'a> {
     window: Option<Arc<Window>>,
     pixels: Option<Pixels<'a>>,
+    size: PhysicalSize<u32>,
     minimized: bool,
 }
 
@@ -19,6 +23,7 @@ impl<'a> App<'a> {
         Self {
             window: None,
             pixels: None,
+            size: PhysicalSize::new(0, 0),
             minimized: false,
         }
     }
@@ -47,6 +52,8 @@ impl<'a> ApplicationHandler for App<'a> {
         }
 
         let size = self.window().inner_size();
+        self.size = size;
+
         if self.pixels.is_none() {
             let surface_texture = SurfaceTexture::new(
                 size.width,
@@ -76,7 +83,9 @@ impl<'a> ApplicationHandler for App<'a> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
+                self.size = size;
                 self.minimized = size.width == 0 && size.height == 0;
+
                 if !self.minimized {
                     self.pixels_mut()
                         .resize_surface(size.width, size.height)
@@ -93,12 +102,10 @@ impl<'a> ApplicationHandler for App<'a> {
                     return;
                 }
 
-                for pix in self.pixels_mut().frame_mut().chunks_exact_mut(4) {
-                    pix.copy_from_slice(&[0, 0xFF, 0xFF, 0xFF]);
-                }
+                let size = self.size;
+                render(self.pixels_mut().frame_mut(), size);
 
                 self.pixels().render().unwrap();
-
                 self.window().request_redraw();
             }
             _ => (),
