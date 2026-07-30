@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
@@ -16,6 +16,7 @@ pub struct App<'a> {
     pixels: Option<Pixels<'a>>,
     size: PhysicalSize<u32>,
     minimized: bool,
+    start_time: Instant,
 }
 
 impl<'a> App<'a> {
@@ -25,6 +26,7 @@ impl<'a> App<'a> {
             pixels: None,
             size: PhysicalSize::new(0, 0),
             minimized: false,
+            start_time: Instant::now(),
         }
     }
 
@@ -103,8 +105,10 @@ impl<'a> ApplicationHandler for App<'a> {
                 }
 
                 if !self.minimized {
+                    let curr_time = Instant::now();
                     let size = self.size;
-                    render(self.pixels_mut().frame_mut(), size);
+                    let time = curr_time - self.start_time;
+                    render(self.pixels_mut().frame_mut(), size, time);
                 }
 
                 self.pixels().render().unwrap();
