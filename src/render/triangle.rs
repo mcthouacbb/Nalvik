@@ -67,18 +67,23 @@ pub fn render_triangle(
     let min_y = v0.y.min(v1.y).min(v2.y);
     let max_y = v0.y.max(v1.y).max(v2.y);
 
-    let mut y = fixed_ceil(min_y - HALF) + HALF;
+    let base_x = fixed_ceil(min_x - HALF) + HALF;
+    let base_y = fixed_ceil(min_y - HALF) + HALF;
+
+    let mut e0_base = edge0.evaluate(Vector2::new(base_x, base_y));
+    let mut e1_base = edge1.evaluate(Vector2::new(base_x, base_y));
+    let mut e2_base = edge2.evaluate(Vector2::new(base_x, base_y));
+
+    let mut y = base_y;
     while y < max_y {
         debug_assert!(y % ONE == HALF);
 
-        let mut x = fixed_ceil(min_x - HALF) + HALF;
+        let mut e0 = e0_base;
+        let mut e1 = e1_base;
+        let mut e2 = e2_base;
+        let mut x = base_x;
         while x < max_x {
             debug_assert!(x % ONE == HALF);
-
-            let p = Vector2::new(x, y);
-            let e0 = edge0.evaluate(p);
-            let e1 = edge1.evaluate(p);
-            let e2 = edge2.evaluate(p);
 
             if e0 >= 0 && e1 >= 0 && e2 >= 0 {
                 let barycentric =
@@ -86,9 +91,15 @@ pub fn render_triangle(
                 pixel_fn((x / ONE) as u32, (y / ONE) as u32, barycentric);
             }
 
+            e0 += edge0.dx * ONE as i64;
+            e1 += edge1.dx * ONE as i64;
+            e2 += edge2.dx * ONE as i64;
             x += ONE;
         }
 
+        e0_base += edge0.dy * ONE as i64;
+        e1_base += edge1.dy * ONE as i64;
+        e2_base += edge2.dy * ONE as i64;
         y += ONE;
     }
 }
