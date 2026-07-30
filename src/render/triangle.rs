@@ -29,9 +29,11 @@ struct EdgeFn {
 
 impl EdgeFn {
     fn from_edge(v0: Vector2<i32>, v1: Vector2<i32>) -> Self {
+        let top_left = v1.x - v0.x > 0 || (v1.x - v0.x == 0 && v1.y - v0.y > 0);
+
         let dx = (v1.y - v0.y) as i64;
         let dy = (v0.x - v1.x) as i64;
-        let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64;
+        let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64 - top_left as i64;
         Self { dx, dy, c }
     }
 
@@ -78,7 +80,6 @@ pub fn render_triangle(
             let e1 = edge1.evaluate(p);
             let e2 = edge2.evaluate(p);
 
-            // TODO: top left rule
             if e0 >= 0 && e1 >= 0 && e2 >= 0 {
                 let barycentric =
                     Vector3::new(e0 as f32 * norm0, e1 as f32 * norm1, e2 as f32 * norm2);
