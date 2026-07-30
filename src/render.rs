@@ -1,9 +1,9 @@
 use cgmath::{Vector2, Vector3};
 use winit::dpi::PhysicalSize;
 
-use crate::render::triangle::render_triangle;
+use crate::render::rasterize::rasterize_triangle;
 
-mod triangle;
+mod rasterize;
 
 pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>) {
     // clear buffer
@@ -19,7 +19,7 @@ pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>) {
         pixel_buffer[base + 3] = 0xFF;
     };
 
-    render_triangle(
+    rasterize_triangle(
         Vector2::new(0.0, -0.5),
         Vector2::new(0.5, 0.0),
         Vector2::new(-0.5, 0.5),

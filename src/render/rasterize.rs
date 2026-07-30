@@ -43,7 +43,7 @@ impl EdgeFn {
 }
 
 // must be CCW winding order
-pub fn render_triangle(
+pub fn rasterize_triangle(
     v0: Vector2<f32>,
     v1: Vector2<f32>,
     v2: Vector2<f32>,
