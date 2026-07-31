@@ -9,7 +9,7 @@ use crate::render::{
 
 mod fragment;
 mod vertex;
-mod vertex_to_fragment;
+pub mod vertex_to_fragment;
 
 pub struct VertexOutput<O: VertexToFragment> {
     pub position: Vector4<f32>,

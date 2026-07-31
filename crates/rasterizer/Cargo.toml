@@ -1,0 +1,10 @@
+[package]
+name = "rasterizer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+macros = { path = "../macros" }
+cgmath = { workspace = true }
+pixels = "0.17.2"
+winit = "0.30.13"

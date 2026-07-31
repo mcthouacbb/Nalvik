@@ -1,9 +1,9 @@
-[package]
-name = "rasterizer"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+resolver = "3"
+members = [
+    "crates/rasterizer",
+    "crates/macros"
+]
 
-[dependencies]
+[workspace.dependencies]
 cgmath = { version = "0.18.0", features = ["swizzle"] }
-pixels = "0.17.2"
-winit = "0.30.13"

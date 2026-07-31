@@ -1,6 +1,7 @@
 use std::{f32, time::Duration};
 
 use cgmath::{Matrix4, Rad, Vector2, Vector3, perspective, prelude::*};
+use macros::VertexToFragment;
 use winit::dpi::PhysicalSize;
 
 use crate::render::pipeline::{Pipeline, VertexOutput};
@@ -10,6 +11,11 @@ mod rasterize;
 
 struct BasicVertexData {
     pos: Vector3<f32>,
+    color: Vector3<f32>,
+}
+
+#[derive(VertexToFragment)]
+struct BasicVertexOutput {
     color: Vector3<f32>,
 }
 
@@ -99,11 +105,22 @@ pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>, time: Dur
         let out_pos = proj_matrix * view_matrix * model_matrix * vertex_input.pos.extend(1.0);
         VertexOutput {
             position: out_pos,
-            data: vertex_input.color,
+            data: BasicVertexOutput {
+                color: vertex_input.color,
+            },
         }
     };
 
-    let fragment_shader = |fragment_input_color: Vector3<f32>| fragment_input_color.extend(1.0);
+    let fragment_shader = |fragment_input: BasicVertexOutput| {
+        if fragment_input.color.y <= 0.2
+            && (fragment_input.color.x - fragment_input.color.z).abs() < 0.4
+        {
+            Vector3::from_value(1.0) - fragment_input.color
+        } else {
+            fragment_input.color
+        }
+        .extend(1.0)
+    };
 
     let pipeline = Pipeline::new(vertex_shader, fragment_shader);
 
