@@ -33,6 +33,11 @@ impl EdgeFn {
 
         let dx = (v1.y - v0.y) as i64;
         let dy = (v0.x - v1.x) as i64;
+        /*
+         * note: biasing by 1 for top left rule technically introduces
+         * a slight error for barycentric coordinates, but it is extraordinarily tiny
+         * with 8 bits of subpixel precision
+         */
         let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64 - top_left as i64;
         Self { dx, dy, c }
     }
