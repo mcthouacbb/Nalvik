@@ -5,6 +5,7 @@ use crate::render::{
         fragment::FragmentShader, vertex::VertexShader, vertex_to_fragment::VertexToFragment,
     },
     rasterize,
+    uniforms::Uniforms,
 };
 
 mod fragment;
@@ -19,15 +20,23 @@ pub struct VertexOutput<O: VertexToFragment> {
 pub struct Pipeline<
     Vi,
     Vo: VertexToFragment,
-    Vs: Fn(Vi) -> VertexOutput<Vo>,
-    Fs: Fn(Vo) -> Vector4<f32>,
+    Vu: Uniforms,
+    Fu: Uniforms,
+    Vs: Fn(Vi, Vu) -> VertexOutput<Vo>,
+    Fs: Fn(Vo, Fu) -> Vector4<f32>,
 > {
-    vertex: VertexShader<Vi, Vo, Vs>,
-    fragment: FragmentShader<Vo, Fs>,
+    vertex: VertexShader<Vi, Vu, Vo, Vs>,
+    fragment: FragmentShader<Vo, Fu, Fs>,
 }
 
-impl<Vi, Vo: VertexToFragment, Vs: Fn(Vi) -> VertexOutput<Vo>, Fs: Fn(Vo) -> Vector4<f32>>
-    Pipeline<Vi, Vo, Vs, Fs>
+impl<
+    Vi,
+    Vo: VertexToFragment,
+    Vu: Uniforms,
+    Fu: Uniforms,
+    Vs: Fn(Vi, Vu) -> VertexOutput<Vo>,
+    Fs: Fn(Vo, Fu) -> Vector4<f32>,
+> Pipeline<Vi, Vo, Vu, Fu, Vs, Fs>
 {
     pub fn new(vertex_shader: Vs, fragment_shader: Fs) -> Self {
         Self {
@@ -38,15 +47,17 @@ impl<Vi, Vo: VertexToFragment, Vs: Fn(Vi) -> VertexOutput<Vo>, Fs: Fn(Vo) -> Vec
 
     pub fn run(
         &self,
+        vertex_uniforms: Vu,
+        fragment_uniforms: Fu,
         vi0: Vi,
         vi1: Vi,
         vi2: Vi,
         viewport_size: Vector2<i32>,
         mut pixel_fn: impl FnMut(u32, u32, Vector4<f32>),
     ) {
-        let mut vo0 = self.vertex.run(vi0);
-        let mut vo1 = self.vertex.run(vi1);
-        let mut vo2 = self.vertex.run(vi2);
+        let mut vo0 = self.vertex.run(vi0, vertex_uniforms);
+        let mut vo1 = self.vertex.run(vi1, vertex_uniforms);
+        let mut vo2 = self.vertex.run(vi2, vertex_uniforms);
 
         let pos0 = vo0.position;
         let pos1 = vo1.position;
@@ -76,7 +87,7 @@ impl<Vi, Vo: VertexToFragment, Vs: Fn(Vi) -> VertexOutput<Vo>, Fs: Fn(Vo) -> Vec
                 let mut fi = Vo::interpolate(&vo0.data, &vo1.data, &vo2.data, barycentric);
                 fi.scale_w(w);
 
-                let color = self.fragment.run(fi);
+                let color = self.fragment.run(fi, fragment_uniforms);
                 pixel_fn(x, y, color);
             },
         );
