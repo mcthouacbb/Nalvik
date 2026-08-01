@@ -68,12 +68,12 @@ pub fn rasterize_triangle(
     let norm2 = 1.0 / edge2.evaluate(v2) as f32;
 
     let min_x = v0.x.min(v1.x).min(v2.x);
-    let max_x = v0.x.max(v1.x).max(v2.x);
+    let max_x = v0.x.max(v1.x).max(v2.x).min(viewport_size.x * ONE);
     let min_y = v0.y.min(v1.y).min(v2.y);
-    let max_y = v0.y.max(v1.y).max(v2.y);
+    let max_y = v0.y.max(v1.y).max(v2.y).min(viewport_size.y * ONE);
 
-    let base_x = fixed_ceil(min_x - HALF) + HALF;
-    let base_y = fixed_ceil(min_y - HALF) + HALF;
+    let base_x = fixed_ceil(min_x - HALF).max(0) + HALF;
+    let base_y = fixed_ceil(min_y - HALF).max(0) + HALF;
 
     let mut e0_base = edge0.evaluate(Vector2::new(base_x, base_y));
     let mut e1_base = edge1.evaluate(Vector2::new(base_x, base_y));
