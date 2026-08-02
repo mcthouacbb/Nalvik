@@ -42,7 +42,13 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
                                 #(self.#field_names *= scale;)*
                             }
 
-                            fn interpolate(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self {
+                            fn interpolate2(a: &Self, b: &Self, t: f32) -> Self {
+                                Self {
+                                    #(#field_names: a.#field_names * (1.0 - t) + b.#field_names * t),*
+                                }
+                            }
+
+                            fn interpolate3(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self {
                                 Self {
                                     #(#field_names: a.#field_names * barycentric.x + b.#field_names * barycentric.y + c.#field_names * barycentric.z),*
                                 }
@@ -63,7 +69,13 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
                                 #(self.#field_names *= scale;)*
                             }
 
-                            fn interpolate(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self {
+                            fn interpolate2(a: &Self, b: &Self, t: f32) -> Self {
+                                Self {
+                                    #(#field_names: a.#field_names * (1.0 - t) + b.#field_names * t),*
+                                }
+                            }
+
+                            fn interpolate3(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self {
                                 Self {
                                     #(#field_names: a.#field_names * barycentric.x + b.#field_names * barycentric.y + c.#field_names * barycentric.z),*
                                 }
@@ -75,7 +87,10 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
                     quote! {
                         impl #trait_path for #name {
                             fn scale_w(&mut self, scale: f32) {}
-                            fn interpolate(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self {
+                            fn interpolate2(a: &Self, b: &Self, t: f32) -> Self {
+                                Self
+                            }
+                            fn interpolate3(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self {
                                 Self
                             }
                         }

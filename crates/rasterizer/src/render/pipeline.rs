@@ -1,6 +1,8 @@
+use arrayvec::ArrayVec;
 use cgmath::{Vector2, Vector3, Vector4};
 
 use crate::render::{
+    clip,
     pipeline::{
         fragment::FragmentShader, vertex::VertexShader, vertex_to_fragment::VertexToFragment,
     },
@@ -12,9 +14,19 @@ mod fragment;
 mod vertex;
 pub mod vertex_to_fragment;
 
+#[derive(Clone, Copy)]
 pub struct VertexOutput<O: VertexToFragment> {
     pub position: Vector4<f32>,
     pub data: O,
+}
+
+impl<O: VertexToFragment> VertexOutput<O> {
+    pub fn interpolate2(a: &Self, b: &Self, t: f32) -> Self {
+        Self {
+            position: a.position * (1.0 - t) + b.position * t,
+            data: O::interpolate2(&a.data, &b.data, t),
+        }
+    }
 }
 
 pub struct Pipeline<
@@ -55,41 +67,49 @@ impl<
         viewport_size: Vector2<i32>,
         mut pixel_fn: impl FnMut(u32, u32, Vector4<f32>),
     ) {
-        let mut vo0 = self.vertex.run(vi0, vertex_uniforms);
-        let mut vo1 = self.vertex.run(vi1, vertex_uniforms);
-        let mut vo2 = self.vertex.run(vi2, vertex_uniforms);
+        let vo0 = self.vertex.run(vi0, vertex_uniforms);
+        let vo1 = self.vertex.run(vi1, vertex_uniforms);
+        let vo2 = self.vertex.run(vi2, vertex_uniforms);
 
-        let pos0 = vo0.position;
-        let pos1 = vo1.position;
-        let pos2 = vo2.position;
+        let mut out_buf = ArrayVec::<VertexOutput<Vo>, { clip::BUF_SIZE }>::new();
+        clip::clip_triangle(&vo0, &vo1, &vo2, &mut out_buf, viewport_size);
 
-        let inv_w0 = 1.0 / pos0.w;
-        let inv_w1 = 1.0 / pos1.w;
-        let inv_w2 = 1.0 / pos2.w;
+        for vertices in out_buf.chunks_exact_mut(3) {
+            let inv_w0 = 1.0 / vertices[0].position.w;
+            let inv_w1 = 1.0 / vertices[1].position.w;
+            let inv_w2 = 1.0 / vertices[2].position.w;
 
-        let v0 = pos0 * inv_w0;
-        let v1 = pos1 * inv_w1;
-        let v2 = pos2 * inv_w2;
+            let v0 = vertices[0].position * inv_w0;
+            let v1 = vertices[1].position * inv_w1;
+            let v2 = vertices[2].position * inv_w2;
 
-        vo0.data.scale_w(inv_w0);
-        vo1.data.scale_w(inv_w1);
-        vo2.data.scale_w(inv_w2);
+            vertices[0].data.scale_w(inv_w0);
+            vertices[1].data.scale_w(inv_w1);
+            vertices[2].data.scale_w(inv_w2);
 
-        rasterize::rasterize_triangle(
-            v0.xy(),
-            v1.xy(),
-            v2.xy(),
-            viewport_size,
-            |x: u32, y: u32, barycentric: Vector3<f32>| {
-                let w = 1.0
-                    / (inv_w0 * barycentric.x + inv_w1 * barycentric.y + inv_w2 * barycentric.z);
+            rasterize::rasterize_triangle(
+                v0.xy(),
+                v1.xy(),
+                v2.xy(),
+                viewport_size,
+                |x: u32, y: u32, barycentric: Vector3<f32>| {
+                    let w = 1.0
+                        / (inv_w0 * barycentric.x
+                            + inv_w1 * barycentric.y
+                            + inv_w2 * barycentric.z);
 
-                let mut fi = Vo::interpolate(&vo0.data, &vo1.data, &vo2.data, barycentric);
-                fi.scale_w(w);
+                    let mut fi = Vo::interpolate3(
+                        &vertices[0].data,
+                        &vertices[1].data,
+                        &vertices[2].data,
+                        barycentric,
+                    );
+                    fi.scale_w(w);
 
-                let color = self.fragment.run(fi, fragment_uniforms);
-                pixel_fn(x, y, color);
-            },
-        );
+                    let color = self.fragment.run(fi, fragment_uniforms);
+                    pixel_fn(x, y, color);
+                },
+            );
+        }
     }
 }

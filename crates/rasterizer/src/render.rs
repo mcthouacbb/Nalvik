@@ -4,8 +4,12 @@ use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*};
 use macros::VertexToFragment;
 use winit::dpi::PhysicalSize;
 
-use crate::render::pipeline::{Pipeline, VertexOutput};
+use crate::{
+    render::pipeline::{Pipeline, VertexOutput},
+    util::PERSPECTIVE_CORRECTION,
+};
 
+mod clip;
 mod pipeline;
 mod rasterize;
 mod uniforms;
@@ -15,7 +19,7 @@ struct BasicVertexData {
     color: Vector3<f32>,
 }
 
-#[derive(VertexToFragment)]
+#[derive(Clone, Copy, VertexToFragment)]
 struct BasicVertexOutput {
     color: Vector3<f32>,
 }
@@ -115,19 +119,25 @@ pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>, time: Dur
         ],
     ];
 
-    let model_matrix1 = Matrix4::from_translation(Vector3::new(1.5, 0.0, -3.0))
-        * Matrix4::from_angle_x(Rad(time.as_secs_f32().sin()))
-        * Matrix4::from_angle_y(Rad(time.as_secs_f32()));
+    let model_matrix1 =
+        Matrix4::from_translation(Vector3::new(1.5, 0.0, -3.0 * time.as_secs_f32().sin()))
+            * Matrix4::from_angle_x(Rad(time.as_secs_f32().sin()))
+            * Matrix4::from_angle_y(Rad(time.as_secs_f32()));
     let model_matrix2 = Matrix4::from_translation(Vector3::new(-1.5, 0.0, -3.0))
         * Matrix4::from_angle_x(Rad(-(1.234 * time.as_secs_f32()).sin()))
         * Matrix4::from_angle_y(Rad(-0.8 * time.as_secs_f32()));
+    let model_matrix3 =
+        Matrix4::from_translation(Vector3::new(0.0, 0.0, -3.0 * time.as_secs_f32().sin()))
+            * Matrix4::from_angle_x(Rad(-(1.234 * time.as_secs_f32()).sin()))
+            * Matrix4::from_angle_y(Rad(-0.8 * time.as_secs_f32()));
     let view_matrix = Matrix4::<f32>::one();
-    let proj_matrix = perspective(
-        Rad(f32::consts::PI / 3.0),
-        buffer_size.width as f32 / buffer_size.height as f32,
-        0.1,
-        50.0,
-    );
+    let proj_matrix = PERSPECTIVE_CORRECTION
+        * perspective(
+            Rad(f32::consts::PI / 3.0),
+            buffer_size.width as f32 / buffer_size.height as f32,
+            1.0,
+            50.0,
+        );
 
     let pipeline = Pipeline::new(vertex_shader, fragment_shader);
 
@@ -136,11 +146,13 @@ pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>, time: Dur
         pix.copy_from_slice(&[0, 0, 0, 0xFF]);
     }
 
-    for i in 0..2 {
+    for i in 0..3 {
         let model_matrix = if i == 0 {
             &model_matrix1
-        } else {
+        } else if i == 1 {
             &model_matrix2
+        } else {
+            &model_matrix3
         };
 
         for tri in cube_triangles {

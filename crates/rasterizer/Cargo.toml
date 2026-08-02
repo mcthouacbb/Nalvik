@@ -8,3 +8,4 @@ macros = { path = "../macros" }
 cgmath = { workspace = true }
 pixels = "0.17.2"
 winit = "0.30.13"
+arrayvec = "0.7.8"
