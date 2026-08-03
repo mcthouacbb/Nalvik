@@ -40,14 +40,7 @@ fn vertex_shader(
 }
 
 fn fragment_shader(fragment_input: &BasicVertexOutput, _uniforms: ()) -> Vector4<f32> {
-    if fragment_input.color.y <= 0.2
-        && (fragment_input.color.x - fragment_input.color.z).abs() < 0.4
-    {
-        Vector3::from_value(1.0) - fragment_input.color
-    } else {
-        fragment_input.color
-    }
-    .extend(1.0)
+    fragment_input.color.extend(1.0)
 }
 
 pub fn render(
@@ -181,7 +174,7 @@ pub fn render(
 
     // clear buffer
     for pix in pixel_buffer.chunks_exact_mut(4) {
-        pix.copy_from_slice(&[0, 0, 0, 0xFF]);
+        pix.copy_from_slice(&[108, 182, 204, 0xFF]);
     }
 
     let viewport_size = Vector2::new(buffer_size.width as i32, buffer_size.height as i32);
