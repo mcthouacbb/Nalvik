@@ -15,6 +15,7 @@ mod pipeline;
 mod rasterize;
 mod uniforms;
 
+#[derive(Clone, Copy)]
 struct BasicVertexData {
     pos: Vector3<f32>,
     color: Vector3<f32>,
@@ -125,6 +126,37 @@ pub fn render(
         ],
     ];
 
+    let overlapping_tris = [
+        [
+            BasicVertexData {
+                pos: Vector3::new(-0.5, 0.5, 0.2),
+                color: Vector3::new(0.054, 0.242, 0.913),
+            },
+            BasicVertexData {
+                pos: Vector3::new(-0.5, -0.5, 0.2),
+                color: Vector3::new(0.054, 0.242, 0.913),
+            },
+            BasicVertexData {
+                pos: Vector3::new(0.7, 0.0, -0.2),
+                color: Vector3::new(0.054, 0.242, 0.913),
+            },
+        ],
+        [
+            BasicVertexData {
+                pos: Vector3::new(0.5, -0.5, 0.2),
+                color: Vector3::new(0.209, 0.791, 0.036),
+            },
+            BasicVertexData {
+                pos: Vector3::new(0.5, 0.5, 0.2),
+                color: Vector3::new(0.209, 0.791, 0.036),
+            },
+            BasicVertexData {
+                pos: Vector3::new(-0.7, 0.0, -0.2),
+                color: Vector3::new(0.209, 0.791, 0.036),
+            },
+        ],
+    ];
+
     let model_matrix1 =
         Matrix4::from_translation(Vector3::new(1.5, 0.0, -3.0 * time.as_secs_f32().sin()))
             * Matrix4::from_angle_x(Rad(time.as_secs_f32().sin()))
@@ -151,6 +183,8 @@ pub fn render(
     for pix in pixel_buffer.chunks_exact_mut(4) {
         pix.copy_from_slice(&[0, 0, 0, 0xFF]);
     }
+
+    let viewport_size = Vector2::new(buffer_size.width as i32, buffer_size.height as i32);
 
     for i in 0..3 {
         let model_matrix = if i == 0 {
@@ -182,8 +216,8 @@ pub fn render(
                 vertex_data0,
                 vertex_data1,
                 vertex_data2,
-                Vector2::new(buffer_size.width as i32, buffer_size.height as i32),
-                |x, y, color| {
+                viewport_size,
+                |x, y, color: Vector4<f32>| {
                     let buf_idx = 4 * (y * buffer_size.width + x) as usize;
                     pixel_buffer[buf_idx] = (color.x * 255.0).round() as u8;
                     pixel_buffer[buf_idx + 1] = (color.y * 255.0).round() as u8;
@@ -192,5 +226,25 @@ pub fn render(
                 },
             );
         }
+    }
+
+    let model_matrix = Matrix4::from_translation(Vector3::new(0.0, 0.0, -5.0));
+    for tri in overlapping_tris {
+        let mvp = proj_matrix * view_matrix * model_matrix;
+        pipeline.run(
+            &mvp,
+            (),
+            tri[0],
+            tri[1],
+            tri[2],
+            viewport_size,
+            |x, y, color: Vector4<f32>| {
+                let buf_idx = 4 * (y * buffer_size.width + x) as usize;
+                pixel_buffer[buf_idx] = (color.x * 255.0).round() as u8;
+                pixel_buffer[buf_idx + 1] = (color.y * 255.0).round() as u8;
+                pixel_buffer[buf_idx + 2] = (color.z * 255.0).round() as u8;
+                pixel_buffer[buf_idx + 3] = (color.w * 255.0).round() as u8;
+            },
+        );
     }
 }
