@@ -34,8 +34,8 @@ pub struct Pipeline<
     Vo: VertexToFragment,
     Vu: Uniforms,
     Fu: Uniforms,
-    Vs: Fn(Vi, Vu) -> VertexOutput<Vo>,
-    Fs: Fn(Vo, Fu) -> Vector4<f32>,
+    Vs: Fn(&Vi, Vu) -> VertexOutput<Vo>,
+    Fs: Fn(&Vo, Fu) -> Vector4<f32>,
 > {
     vertex: VertexShader<Vi, Vu, Vo, Vs>,
     fragment: FragmentShader<Vo, Fu, Fs>,
@@ -46,8 +46,8 @@ impl<
     Vo: VertexToFragment,
     Vu: Uniforms,
     Fu: Uniforms,
-    Vs: Fn(Vi, Vu) -> VertexOutput<Vo>,
-    Fs: Fn(Vo, Fu) -> Vector4<f32>,
+    Vs: Fn(&Vi, Vu) -> VertexOutput<Vo>,
+    Fs: Fn(&Vo, Fu) -> Vector4<f32>,
 > Pipeline<Vi, Vo, Vu, Fu, Vs, Fs>
 {
     pub fn new(vertex_shader: Vs, fragment_shader: Fs) -> Self {
@@ -61,9 +61,9 @@ impl<
         &self,
         vertex_uniforms: Vu,
         fragment_uniforms: Fu,
-        vi0: Vi,
-        vi1: Vi,
-        vi2: Vi,
+        vi0: &Vi,
+        vi1: &Vi,
+        vi2: &Vi,
         viewport_size: Vector2<i32>,
         mut pixel_fn: impl FnMut(u32, u32, Vector4<f32>),
     ) {
@@ -106,7 +106,7 @@ impl<
                     );
                     fi.scale_w(w);
 
-                    let color = self.fragment.run(fi, fragment_uniforms);
+                    let color = self.fragment.run(&fi, fragment_uniforms);
                     pixel_fn(x, y, color);
                 },
             );

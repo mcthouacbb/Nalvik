@@ -27,7 +27,7 @@ struct BasicVertexOutput {
 }
 
 fn vertex_shader(
-    vertex_input: BasicVertexData,
+    vertex_input: &BasicVertexData,
     uniforms: &Matrix4<f32>,
 ) -> VertexOutput<BasicVertexOutput> {
     let out_pos = uniforms * vertex_input.pos.extend(1.0);
@@ -39,7 +39,7 @@ fn vertex_shader(
     }
 }
 
-fn fragment_shader(fragment_input: BasicVertexOutput, _uniforms: ()) -> Vector4<f32> {
+fn fragment_shader(fragment_input: &BasicVertexOutput, _uniforms: ()) -> Vector4<f32> {
     if fragment_input.color.y <= 0.2
         && (fragment_input.color.x - fragment_input.color.z).abs() < 0.4
     {
@@ -213,9 +213,9 @@ pub fn render(
             pipeline.run(
                 &mvp,
                 (),
-                vertex_data0,
-                vertex_data1,
-                vertex_data2,
+                &vertex_data0,
+                &vertex_data1,
+                &vertex_data2,
                 viewport_size,
                 |x, y, color: Vector4<f32>| {
                     let buf_idx = 4 * (y * buffer_size.width + x) as usize;
@@ -234,9 +234,9 @@ pub fn render(
         pipeline.run(
             &mvp,
             (),
-            tri[0],
-            tri[1],
-            tri[2],
+            &tri[0],
+            &tri[1],
+            &tri[2],
             viewport_size,
             |x, y, color: Vector4<f32>| {
                 let buf_idx = 4 * (y * buffer_size.width + x) as usize;
