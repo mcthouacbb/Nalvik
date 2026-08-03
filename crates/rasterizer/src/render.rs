@@ -5,6 +5,7 @@ use macros::VertexToFragment;
 use winit::dpi::PhysicalSize;
 
 use crate::{
+    camera::Camera,
     render::pipeline::{Pipeline, VertexOutput},
     util::PERSPECTIVE_CORRECTION,
 };
@@ -48,7 +49,12 @@ fn fragment_shader(fragment_input: BasicVertexOutput, _uniforms: ()) -> Vector4<
     .extend(1.0)
 }
 
-pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>, time: Duration) {
+pub fn render(
+    pixel_buffer: &mut [u8],
+    buffer_size: PhysicalSize<u32>,
+    time: Duration,
+    camera: &Camera,
+) {
     // right handed coordinates
     let cube_triangles = [
         // +z face
@@ -130,7 +136,7 @@ pub fn render(pixel_buffer: &mut [u8], buffer_size: PhysicalSize<u32>, time: Dur
         Matrix4::from_translation(Vector3::new(0.0, 0.0, -3.0 * time.as_secs_f32().sin()))
             * Matrix4::from_angle_x(Rad(-(1.234 * time.as_secs_f32()).sin()))
             * Matrix4::from_angle_y(Rad(-0.8 * time.as_secs_f32()));
-    let view_matrix = Matrix4::<f32>::one();
+    let view_matrix = camera.view_matrix();
     let proj_matrix = PERSPECTIVE_CORRECTION
         * perspective(
             Rad(f32::consts::PI / 3.0),

@@ -1,15 +1,17 @@
-use std::{sync::Arc, time::Instant};
+use std::{collections::HashSet, sync::Arc, time::Instant};
 
+use cgmath::{Vector2, Vector3};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalSize,
-    event::WindowEvent,
+    event::{DeviceEvent, ElementState, MouseButton, WindowEvent},
     event_loop::ActiveEventLoop,
-    window::{Window, WindowId},
+    keyboard::{KeyCode, PhysicalKey},
+    window::{CursorGrabMode, Window, WindowId},
 };
 
-use crate::render::render;
+use crate::{camera::Camera, render::render};
 
 pub struct App<'a> {
     window: Option<Arc<Window>>,
@@ -17,16 +19,26 @@ pub struct App<'a> {
     size: PhysicalSize<u32>,
     minimized: bool,
     start_time: Instant,
+    prev_time: Instant,
+
+    pressed_keys: HashSet<KeyCode>,
+    camera: Camera,
+    cursor_locked: bool,
 }
 
 impl<'a> App<'a> {
     pub fn new() -> Self {
+        let time = Instant::now();
         Self {
             window: None,
             pixels: None,
             size: PhysicalSize::new(0, 0),
             minimized: false,
-            start_time: Instant::now(),
+            start_time: time,
+            prev_time: time,
+            pressed_keys: HashSet::new(),
+            camera: Camera::new(Vector3::new(0.0, 0.0, 0.0), Vector2::new(0.0, 0.0)),
+            cursor_locked: false,
         }
     }
 
@@ -40,6 +52,22 @@ impl<'a> App<'a> {
 
     fn pixels_mut(&mut self) -> &mut Pixels<'a> {
         self.pixels.as_mut().unwrap()
+    }
+
+    fn is_key_pressed(&self, key_code: KeyCode) -> bool {
+        self.pressed_keys.contains(&key_code)
+    }
+
+    fn lock_cursor(&mut self) {
+        let _ = self.window().set_cursor_grab(CursorGrabMode::Locked);
+        self.window().set_cursor_visible(false);
+        self.cursor_locked = true;
+    }
+
+    fn unlock_cursor(&mut self) {
+        let _ = self.window().set_cursor_grab(CursorGrabMode::None);
+        self.window().set_cursor_visible(true);
+        self.cursor_locked = false;
     }
 }
 
@@ -108,11 +136,100 @@ impl<'a> ApplicationHandler for App<'a> {
                     let curr_time = Instant::now();
                     let size = self.size;
                     let time = curr_time - self.start_time;
-                    render(self.pixels_mut().frame_mut(), size, time);
+                    let dt = curr_time - self.prev_time;
+                    self.prev_time = curr_time;
+
+                    const SPEED: f32 = 4.0;
+
+                    if self.is_key_pressed(KeyCode::KeyE) {
+                        self.camera.position.y += SPEED * dt.as_secs_f32();
+                    }
+                    if self.is_key_pressed(KeyCode::KeyQ) {
+                        self.camera.position.y -= SPEED * dt.as_secs_f32();
+                    }
+
+                    if self.is_key_pressed(KeyCode::KeyW) {
+                        self.camera.position.z -=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                        self.camera.position.x -=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                    }
+
+                    if self.is_key_pressed(KeyCode::KeyS) {
+                        self.camera.position.z +=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                        self.camera.position.x +=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                    }
+
+                    if self.is_key_pressed(KeyCode::KeyD) {
+                        self.camera.position.z -=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                        self.camera.position.x +=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                    }
+
+                    if self.is_key_pressed(KeyCode::KeyA) {
+                        self.camera.position.z +=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                        self.camera.position.x -=
+                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                    }
+
+                    render(
+                        self.pixels.as_mut().unwrap().frame_mut(),
+                        size,
+                        time,
+                        &self.camera,
+                    );
                 }
 
                 self.pixels().render().unwrap();
                 self.window().request_redraw();
+            }
+            WindowEvent::KeyboardInput {
+                device_id: _,
+                event,
+                is_synthetic: _,
+            } => {
+                if let PhysicalKey::Code(key_code) = event.physical_key {
+                    // ignore unidentified keys
+                    if event.state == ElementState::Pressed {
+                        self.pressed_keys.insert(key_code);
+                    } else {
+                        self.pressed_keys.remove(&key_code);
+                    }
+
+                    if key_code == KeyCode::Escape {
+                        self.unlock_cursor();
+                    }
+                }
+            }
+            WindowEvent::MouseInput {
+                device_id: _,
+                state,
+                button,
+            } => {
+                if button == MouseButton::Left && state.is_pressed() {
+                    self.lock_cursor();
+                }
+            }
+            _ => (),
+        }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: DeviceEvent,
+    ) {
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                if self.cursor_locked {
+                    self.camera.rotation.y -= 0.002 * delta.0 as f32;
+                    self.camera.rotation.x -= 0.002 * delta.1 as f32;
+                }
             }
             _ => (),
         }
