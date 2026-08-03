@@ -1,16 +1,20 @@
 use std::{f32, time::Duration};
 
-use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*};
+use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, perspective};
 use macros::VertexToFragment;
 use winit::dpi::PhysicalSize;
 
 use crate::{
     camera::Camera,
-    render::pipeline::{Pipeline, VertexOutput},
+    render::{
+        image::{ImageViewMut, format::RgbaU8},
+        pipeline::{Pipeline, VertexOutput},
+    },
     util::PERSPECTIVE_CORRECTION,
 };
 
 mod clip;
+mod image;
 mod pipeline;
 mod rasterize;
 mod uniforms;
@@ -177,6 +181,12 @@ pub fn render(
         pix.copy_from_slice(&[108, 182, 204, 0xFF]);
     }
 
+    let mut framebuffer = ImageViewMut::new(
+        bytemuck::cast_slice_mut::<u8, RgbaU8>(pixel_buffer),
+        buffer_size.width,
+        buffer_size.height,
+    );
+
     let viewport_size = Vector2::new(buffer_size.width as i32, buffer_size.height as i32);
 
     for i in 0..3 {
@@ -210,13 +220,7 @@ pub fn render(
                 &vertex_data1,
                 &vertex_data2,
                 viewport_size,
-                |x, y, color: Vector4<f32>| {
-                    let buf_idx = 4 * (y * buffer_size.width + x) as usize;
-                    pixel_buffer[buf_idx] = (color.x * 255.0).round() as u8;
-                    pixel_buffer[buf_idx + 1] = (color.y * 255.0).round() as u8;
-                    pixel_buffer[buf_idx + 2] = (color.z * 255.0).round() as u8;
-                    pixel_buffer[buf_idx + 3] = (color.w * 255.0).round() as u8;
-                },
+                &mut framebuffer,
             );
         }
     }
@@ -231,13 +235,7 @@ pub fn render(
             &tri[1],
             &tri[2],
             viewport_size,
-            |x, y, color: Vector4<f32>| {
-                let buf_idx = 4 * (y * buffer_size.width + x) as usize;
-                pixel_buffer[buf_idx] = (color.x * 255.0).round() as u8;
-                pixel_buffer[buf_idx + 1] = (color.y * 255.0).round() as u8;
-                pixel_buffer[buf_idx + 2] = (color.z * 255.0).round() as u8;
-                pixel_buffer[buf_idx + 3] = (color.w * 255.0).round() as u8;
-            },
+            &mut framebuffer,
         );
     }
 }

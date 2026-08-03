@@ -3,6 +3,10 @@ use cgmath::{Vector2, Vector3, Vector4};
 
 use crate::render::{
     clip,
+    image::{
+        ImageViewMut,
+        format::{ImageFormat, RgbaF32},
+    },
     pipeline::{
         fragment::FragmentShader, vertex::VertexShader, vertex_to_fragment::VertexToFragment,
     },
@@ -57,7 +61,7 @@ impl<
         }
     }
 
-    pub fn run(
+    pub fn run<T: ImageFormat + From<RgbaF32>>(
         &self,
         vertex_uniforms: Vu,
         fragment_uniforms: Fu,
@@ -65,7 +69,7 @@ impl<
         vi1: &Vi,
         vi2: &Vi,
         viewport_size: Vector2<i32>,
-        mut pixel_fn: impl FnMut(u32, u32, Vector4<f32>),
+        framebuffer: &mut ImageViewMut<T>,
     ) {
         let vo0 = self.vertex.run(vi0, vertex_uniforms);
         let vo1 = self.vertex.run(vi1, vertex_uniforms);
@@ -107,7 +111,7 @@ impl<
                     fi.scale_w(w);
 
                     let color = self.fragment.run(&fi, fragment_uniforms);
-                    pixel_fn(x, y, color);
+                    *framebuffer.get_mut(x, y) = RgbaF32::new(color).into();
                 },
             );
         }
