@@ -7,8 +7,15 @@ use winit::dpi::PhysicalSize;
 use crate::{
     camera::Camera,
     render::{
-        image::{ImageViewMut, format::RgbaU8},
-        pipeline::{Pipeline, VertexOutput},
+        image::{
+            Image,
+            format::{DepthF32, RgbaU8},
+            view::ImageViewMut,
+        },
+        pipeline::{
+            Pipeline, VertexOutput,
+            depth_state::{DepthState, DepthTest},
+        },
     },
     util::PERSPECTIVE_CORRECTION,
 };
@@ -134,7 +141,7 @@ pub fn render(
                 color: Vector3::new(0.054, 0.242, 0.913),
             },
             BasicVertexData {
-                pos: Vector3::new(0.7, 0.0, -0.2),
+                pos: Vector3::new(1.4, 0.0, -0.2),
                 color: Vector3::new(0.054, 0.242, 0.913),
             },
         ],
@@ -148,7 +155,7 @@ pub fn render(
                 color: Vector3::new(0.209, 0.791, 0.036),
             },
             BasicVertexData {
-                pos: Vector3::new(-0.7, 0.0, -0.2),
+                pos: Vector3::new(-1.4, 0.0, -0.2),
                 color: Vector3::new(0.209, 0.791, 0.036),
             },
         ],
@@ -170,7 +177,7 @@ pub fn render(
         * perspective(
             Rad(f32::consts::PI / 3.0),
             buffer_size.width as f32 / buffer_size.height as f32,
-            1.0,
+            0.1,
             50.0,
         );
 
@@ -188,6 +195,9 @@ pub fn render(
     );
 
     let viewport_size = Vector2::new(buffer_size.width as i32, buffer_size.height as i32);
+
+    let mut depth_buffer = Image::new(DepthF32::from(0.0), buffer_size.width, buffer_size.height);
+    let mut depth_state = DepthState::CompareAndWrite(depth_buffer.view_mut(), DepthTest::Less);
 
     for i in 0..3 {
         let model_matrix = if i == 0 {
@@ -221,6 +231,7 @@ pub fn render(
                 &vertex_data2,
                 viewport_size,
                 &mut framebuffer,
+                &mut depth_state,
             );
         }
     }
@@ -236,6 +247,7 @@ pub fn render(
             &tri[2],
             viewport_size,
             &mut framebuffer,
+            &mut depth_state,
         );
     }
 }

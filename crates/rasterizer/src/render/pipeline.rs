@@ -4,16 +4,18 @@ use cgmath::{Vector2, Vector3, Vector4};
 use crate::render::{
     clip,
     image::{
-        ImageViewMut,
-        format::{ImageFormat, RgbaF32},
+        format::{DepthFormat, ImageFormat, RgbaF32},
+        view::ImageViewMut,
     },
     pipeline::{
-        fragment::FragmentShader, vertex::VertexShader, vertex_to_fragment::VertexToFragment,
+        depth_state::DepthState, fragment::FragmentShader, vertex::VertexShader,
+        vertex_to_fragment::VertexToFragment,
     },
     rasterize,
     uniforms::Uniforms,
 };
 
+pub mod depth_state;
 mod fragment;
 mod vertex;
 pub mod vertex_to_fragment;
@@ -61,7 +63,7 @@ impl<
         }
     }
 
-    pub fn run<T: ImageFormat + From<RgbaF32>>(
+    pub fn run<T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
         &self,
         vertex_uniforms: Vu,
         fragment_uniforms: Fu,
@@ -69,7 +71,8 @@ impl<
         vi1: &Vi,
         vi2: &Vi,
         viewport_size: Vector2<i32>,
-        framebuffer: &mut ImageViewMut<T>,
+        color_buffer: &mut ImageViewMut<T>,
+        depth_state: &mut DepthState<D>,
     ) {
         let vo0 = self.vertex.run(vi0, vertex_uniforms);
         let vo1 = self.vertex.run(vi1, vertex_uniforms);
@@ -97,21 +100,27 @@ impl<
                 v2.xy(),
                 viewport_size,
                 |x: u32, y: u32, barycentric: Vector3<f32>| {
-                    let w = 1.0
-                        / (inv_w0 * barycentric.x
-                            + inv_w1 * barycentric.y
-                            + inv_w2 * barycentric.z);
+                    // depth is a screen space linear (not perspective correct) interpolation of z/w
+                    // this is equivalent to a taking the perspective correct interpolation of
+                    // clip-space z and dividing that by the perspective correct interpolation of w
+                    let depth = v0.z * barycentric.x + v1.z * barycentric.y + v2.z * barycentric.z;
+                    if depth_state.keep_fragment(x, y, depth) {
+                        let w = 1.0
+                            / (inv_w0 * barycentric.x
+                                + inv_w1 * barycentric.y
+                                + inv_w2 * barycentric.z);
 
-                    let mut fi = Vo::interpolate3(
-                        &vertices[0].data,
-                        &vertices[1].data,
-                        &vertices[2].data,
-                        barycentric,
-                    );
-                    fi.scale_w(w);
+                        let mut fi = Vo::interpolate3(
+                            &vertices[0].data,
+                            &vertices[1].data,
+                            &vertices[2].data,
+                            barycentric,
+                        );
+                        fi.scale_w(w);
 
-                    let color = self.fragment.run(&fi, fragment_uniforms);
-                    *framebuffer.get_mut(x, y) = RgbaF32::new(color).into();
+                        let color = self.fragment.run(&fi, fragment_uniforms);
+                        *color_buffer.get_mut(x, y) = RgbaF32::new(color).into();
+                    }
                 },
             );
         }
