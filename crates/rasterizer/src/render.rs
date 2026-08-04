@@ -20,7 +20,7 @@ use crate::{
             depth_state::{DepthState, DepthTest},
         },
     },
-    terrain::{Terrain, generate_terrain},
+    terrain::manager::ChunkManager,
     util::PERSPECTIVE_CORRECTION,
 };
 
@@ -91,7 +91,7 @@ fn vertex_shader(
 
 fn fragment_shader(fragment_input: &BasicVertexOutput, _uniforms: ()) -> Vector4<f32> {
     // (-0.4, -1, -0.5).normalized()
-    const LIGHT_DIR: Vector3<f32> = Vector3::new(-0.336860768, -0.84215192, -0.42107596);
+    const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
     let brightness = 0.5 * (fragment_input.normal.normalize().dot(-LIGHT_DIR) + 1.0);
     (fragment_input.color * brightness).extend(1.0)
 }
@@ -355,8 +355,8 @@ pub struct Renderer {
     depth_buffer: Image<DepthF32>,
     size: Vector2<i32>,
     cube: [[BasicVertexData; 3]; 12],
-    terrain: Terrain,
     overlapping_tris: [[BasicVertexData; 3]; 2],
+    chunk_manager: ChunkManager,
 }
 
 impl Renderer {
@@ -369,8 +369,8 @@ impl Renderer {
             ),
             size: vec2(viewport_size.width as i32, viewport_size.height as i32),
             cube: cube_mesh(),
-            terrain: generate_terrain(vec2(0, 0), vec2(16, 16), vec3(1.0, 1.0, 1.0)),
             overlapping_tris: overlapping_tri_mesh(),
+            chunk_manager: ChunkManager::new(),
         }
     }
 
@@ -400,7 +400,7 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
             Rad(f32::consts::PI / 3.0),
             renderer.aspect_ratio(),
             0.1,
-            50.0,
+            100.0,
         );
 
     let pipeline = Pipeline::new(vertex_shader, fragment_shader);
@@ -416,12 +416,9 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
         renderer.size.y as u32,
     );
 
-    let mut depth_buffer = Image::new(
-        DepthF32::from(1.0),
-        renderer.size.x as u32,
-        renderer.size.y as u32,
-    );
-    let mut depth_state = DepthState::CompareAndWrite(depth_buffer.view_mut(), DepthTest::Less);
+    renderer.depth_buffer.clear(DepthF32::new(1.0));
+    let mut depth_state =
+        DepthState::CompareAndWrite(renderer.depth_buffer.view_mut(), DepthTest::Less);
 
     for i in 0..3 {
         let model_matrix = if i == 0 {
@@ -460,17 +457,27 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
         );
     }
 
-    let model_matrix = Matrix4::from_translation(vec3(-8.0, -3.0, -8.0));
-    for tri in renderer.terrain.mesh() {
-        pipeline.run(
-            &BasicUniforms::new(&model_matrix, &view_matrix, &proj_matrix),
-            (),
-            &tri[0],
-            &tri[1],
-            &tri[2],
-            renderer.size,
-            &mut framebuffer,
-            &mut depth_state,
-        );
+    renderer.chunk_manager.update_chunks(camera.position.xz());
+    for chunk in &renderer
+        .chunk_manager
+        .get_active_chunks(camera.position.xz())
+    {
+        let model_matrix = Matrix4::from_translation(vec3(
+            chunk.base_pos().x as f32,
+            -3.0,
+            chunk.base_pos().y as f32,
+        ));
+        for tri in chunk.mesh() {
+            pipeline.run(
+                &BasicUniforms::new(&model_matrix, &view_matrix, &proj_matrix),
+                (),
+                &tri[0],
+                &tri[1],
+                &tri[2],
+                renderer.size,
+                &mut framebuffer,
+                &mut depth_state,
+            );
+        }
     }
 }

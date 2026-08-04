@@ -28,4 +28,8 @@ impl<T: ImageFormat> Image<T> {
     pub fn view_mut(&mut self) -> ImageViewMut<'_, T> {
         ImageViewMut::new(&mut self.data, self.width, self.height)
     }
+
+    pub fn clear(&mut self, value: T) {
+        self.data.fill(value);
+    }
 }
