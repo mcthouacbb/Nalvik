@@ -1,5 +1,5 @@
 use arrayvec::ArrayVec;
-use cgmath::{Vector2, Vector4, prelude::*};
+use cgmath::{Vector2, Vector4, prelude::*, vec4};
 
 use crate::render::pipeline::{VertexOutput, vertex_to_fragment::VertexToFragment};
 
@@ -31,7 +31,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
     let mut back_buf = &mut tmp_buf;
 
     // z >= 0
-    clip_against_plane(v0, v1, v2, Vector4::new(0.0, 0.0, 1.0, 0.0), front_buf);
+    clip_against_plane(v0, v1, v2, vec4(0.0, 0.0, 1.0, 0.0), front_buf);
     debug_assert!(front_buf.len() % 3 == 0);
 
     if front_buf.len() == 0 {
@@ -56,7 +56,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            Vector4::new(1.0, 0.0, 0.0, -coeff_neg_x),
+            vec4(1.0, 0.0, 0.0, -coeff_neg_x),
             front_buf,
         );
     }
@@ -68,7 +68,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            Vector4::new(-1.0, 0.0, 0.0, coeff_pos_x),
+            vec4(-1.0, 0.0, 0.0, coeff_pos_x),
             &mut front_buf,
         );
     }
@@ -80,7 +80,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            Vector4::new(0.0, 1.0, 0.0, -coeff_neg_y),
+            vec4(0.0, 1.0, 0.0, -coeff_neg_y),
             &mut front_buf,
         );
     }
@@ -92,7 +92,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            Vector4::new(0.0, -1.0, 0.0, coeff_pos_y),
+            vec4(0.0, -1.0, 0.0, coeff_pos_y),
             &mut front_buf,
         );
     }

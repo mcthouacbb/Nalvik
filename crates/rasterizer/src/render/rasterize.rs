@@ -1,4 +1,4 @@
-use cgmath::{Vector2, Vector3};
+use cgmath::{Vector2, Vector3, vec2, vec3};
 
 const ONE: i32 = 256;
 const HALF: i32 = ONE / 2;
@@ -15,7 +15,7 @@ fn fixed_ceil(x: i32) -> i32 {
 
 // v should be in [-1, 1]^2
 fn to_viewport(v: Vector2<f32>, viewport_size: Vector2<i32>) -> Vector2<i32> {
-    Vector2::new(
+    vec2(
         ((v.x * 0.5 + 0.5) * (viewport_size.x * ONE) as f32).round() as i32,
         ((0.5 - v.y * 0.5) * (viewport_size.y * ONE) as f32).round() as i32,
     )
@@ -75,9 +75,9 @@ pub fn rasterize_triangle(
     let base_x = fixed_ceil(min_x - HALF).max(0) + HALF;
     let base_y = fixed_ceil(min_y - HALF).max(0) + HALF;
 
-    let mut e0_base = edge0.evaluate(Vector2::new(base_x, base_y));
-    let mut e1_base = edge1.evaluate(Vector2::new(base_x, base_y));
-    let mut e2_base = edge2.evaluate(Vector2::new(base_x, base_y));
+    let mut e0_base = edge0.evaluate(vec2(base_x, base_y));
+    let mut e1_base = edge1.evaluate(vec2(base_x, base_y));
+    let mut e2_base = edge2.evaluate(vec2(base_x, base_y));
 
     let mut y = base_y;
     while y < max_y {
@@ -91,8 +91,7 @@ pub fn rasterize_triangle(
             debug_assert!(x % ONE == HALF);
 
             if e0 >= 0 && e1 >= 0 && e2 >= 0 {
-                let barycentric =
-                    Vector3::new(e0 as f32 * norm0, e1 as f32 * norm1, e2 as f32 * norm2);
+                let barycentric = vec3(e0 as f32 * norm0, e1 as f32 * norm1, e2 as f32 * norm2);
                 pixel_fn((x / ONE) as u32, (y / ONE) as u32, barycentric);
             }
 

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc, time::Instant};
 
-use cgmath::{Vector2, Vector3};
+use cgmath::{Vector2, Vector3, vec2, vec3};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     application::ApplicationHandler,
@@ -42,7 +42,7 @@ impl<'a> App<'a> {
             start_time: time,
             prev_time: time,
             pressed_keys: HashSet::new(),
-            camera: Camera::new(Vector3::new(0.0, 0.0, 0.0), Vector2::new(0.0, 0.0)),
+            camera: Camera::new(vec3(0.0, 0.0, 0.0), vec2(0.0, 0.0)),
             cursor_locked: false,
         }
     }
