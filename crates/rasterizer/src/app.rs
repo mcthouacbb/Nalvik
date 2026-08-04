@@ -11,11 +11,15 @@ use winit::{
     window::{CursorGrabMode, Window, WindowId},
 };
 
-use crate::{camera::Camera, render::render};
+use crate::{
+    camera::Camera,
+    render::{Renderer, render},
+};
 
 pub struct App<'a> {
     window: Option<Arc<Window>>,
     pixels: Option<Pixels<'a>>,
+    renderer: Option<Renderer>,
     size: PhysicalSize<u32>,
     minimized: bool,
     start_time: Instant,
@@ -32,6 +36,7 @@ impl<'a> App<'a> {
         Self {
             window: None,
             pixels: None,
+            renderer: None,
             size: PhysicalSize::new(0, 0),
             minimized: false,
             start_time: time,
@@ -52,6 +57,14 @@ impl<'a> App<'a> {
 
     fn pixels_mut(&mut self) -> &mut Pixels<'a> {
         self.pixels.as_mut().unwrap()
+    }
+
+    fn renderer(&self) -> &Renderer {
+        self.renderer.as_ref().unwrap()
+    }
+
+    fn renderer_mut(&mut self) -> &mut Renderer {
+        self.renderer.as_mut().unwrap()
     }
 
     fn is_key_pressed(&self, key_code: KeyCode) -> bool {
@@ -99,6 +112,12 @@ impl<'a> ApplicationHandler for App<'a> {
                 .resize_buffer(size.width, size.height)
                 .unwrap();
         }
+
+        if self.renderer.is_none() {
+            self.renderer = Some(Renderer::new(size));
+        } else {
+            self.renderer_mut().resize(size);
+        }
     }
 
     fn window_event(
@@ -123,6 +142,8 @@ impl<'a> ApplicationHandler for App<'a> {
                     self.pixels_mut()
                         .resize_buffer(size.width, size.height)
                         .unwrap();
+
+                    self.renderer_mut().resize(size);
                 }
 
                 self.window().request_redraw();
@@ -134,7 +155,6 @@ impl<'a> ApplicationHandler for App<'a> {
 
                 if !self.minimized {
                     let curr_time = Instant::now();
-                    let size = self.size;
                     let time = curr_time - self.start_time;
                     let dt = curr_time - self.prev_time;
                     self.prev_time = curr_time;
@@ -177,8 +197,8 @@ impl<'a> ApplicationHandler for App<'a> {
                     }
 
                     render(
+                        self.renderer.as_mut().unwrap(),
                         self.pixels.as_mut().unwrap().frame_mut(),
-                        size,
                         time,
                         &self.camera,
                     );
