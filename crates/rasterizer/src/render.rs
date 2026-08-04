@@ -196,7 +196,7 @@ pub fn render(
 
     let viewport_size = Vector2::new(buffer_size.width as i32, buffer_size.height as i32);
 
-    let mut depth_buffer = Image::new(DepthF32::from(0.0), buffer_size.width, buffer_size.height);
+    let mut depth_buffer = Image::new(DepthF32::from(1.0), buffer_size.width, buffer_size.height);
     let mut depth_state = DepthState::CompareAndWrite(depth_buffer.view_mut(), DepthTest::Less);
 
     for i in 0..3 {
