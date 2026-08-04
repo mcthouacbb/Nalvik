@@ -16,8 +16,8 @@ fn fixed_ceil(x: i32) -> i32 {
 // v should be in [-1, 1]^2
 fn to_viewport(v: Vector2<f32>, viewport_size: Vector2<i32>) -> Vector2<i32> {
     vec2(
-        ((v.x * 0.5 + 0.5) * (viewport_size.x * ONE) as f32).round() as i32,
-        ((0.5 - v.y * 0.5) * (viewport_size.y * ONE) as f32).round() as i32,
+        ((v.x * 0.5 + 0.5) * (viewport_size.x * ONE) as f32 + 0.5) as i32,
+        ((0.5 - v.y * 0.5) * (viewport_size.y * ONE) as f32 + 0.5) as i32,
     )
 }
 
