@@ -45,10 +45,10 @@ impl From<RgbaF32> for RgbaU8 {
     fn from(value: RgbaF32) -> Self {
         Self {
             rgba: [
-                (value.rgba[0] * 255.0).round() as u8,
-                (value.rgba[1] * 255.0).round() as u8,
-                (value.rgba[2] * 255.0).round() as u8,
-                (value.rgba[3] * 255.0).round() as u8,
+                (value.rgba[0] * 255.0 + 0.5) as u8,
+                (value.rgba[1] * 255.0 + 0.5) as u8,
+                (value.rgba[2] * 255.0 + 0.5) as u8,
+                (value.rgba[3] * 255.0 + 0.5) as u8,
             ],
         }
     }
