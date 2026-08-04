@@ -24,6 +24,7 @@ pub struct App<'a> {
     minimized: bool,
     start_time: Instant,
     prev_time: Instant,
+    avg_dt: f64,
 
     pressed_keys: HashSet<KeyCode>,
     camera: Camera,
@@ -41,6 +42,7 @@ impl<'a> App<'a> {
             minimized: false,
             start_time: time,
             prev_time: time,
+            avg_dt: 0.0,
             pressed_keys: HashSet::new(),
             camera: Camera::new(vec3(0.0, 0.0, 0.0), vec2(0.0, 0.0)),
             cursor_locked: false,
@@ -156,8 +158,14 @@ impl<'a> ApplicationHandler for App<'a> {
                 if !self.minimized {
                     let curr_time = Instant::now();
                     let time = curr_time - self.start_time;
+                    let prev_time = self.prev_time - self.start_time;
                     let dt = curr_time - self.prev_time;
                     self.prev_time = curr_time;
+
+                    self.avg_dt = 0.9 * self.avg_dt + 0.1 * dt.as_secs_f64();
+                    if time.as_secs_f32().ceil() != prev_time.as_secs_f32().ceil() {
+                        println!("FPS: {}", (10.0 / self.avg_dt).round() / 10.0);
+                    }
 
                     const SPEED: f32 = 4.0;
 
