@@ -167,7 +167,7 @@ impl<'a> ApplicationHandler for App<'a> {
                         println!("FPS: {}", (10.0 / self.avg_dt).round() / 10.0);
                     }
 
-                    const SPEED: f32 = 4.0;
+                    const SPEED: f32 = 12.0;
 
                     if self.is_key_pressed(KeyCode::KeyE) {
                         self.camera.position.y += SPEED * dt.as_secs_f32();

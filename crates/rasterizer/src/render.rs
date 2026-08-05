@@ -100,266 +100,9 @@ fn fragment_shader(
     (fragment_input.color * brightness).extend(1.0)
 }
 
-fn cube_mesh() -> [[BasicVertexData; 3]; 12] {
-    // right handed coordinates
-    [
-        // +z face
-        [
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, 0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, 0.0, 1.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, -0.5, 0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, 0.0, 1.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, 0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, 0.0, 1.0),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(0.5, 0.5, 0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, 0.0, 1.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, 0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, 0.0, 1.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, 0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, 0.0, 1.0),
-            ),
-        ],
-        // -z face
-        [
-            BasicVertexData::new(
-                vec3(0.5, -0.5, -0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, 0.0, -1.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, -0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, 0.0, -1.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, -0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, 0.0, -1.0),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, -0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, 0.0, -1.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, -0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, 0.0, -1.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, -0.5, -0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, 0.0, -1.0),
-            ),
-        ],
-        // +x face
-        [
-            BasicVertexData::new(
-                vec3(0.5, -0.5, 0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, -0.5, -0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, -0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(1.0, 0.0, 0.0),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(0.5, 0.5, -0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, 0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, -0.5, 0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(1.0, 0.0, 0.0),
-            ),
-        ],
-        // -x face
-        [
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, -0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(-1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, 0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(-1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, 0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(-1.0, 0.0, 0.0),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, 0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(-1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, -0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(-1.0, 0.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, -0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(-1.0, 0.0, 0.0),
-            ),
-        ],
-        // +y face
-        [
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, 0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, 1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, 0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, 1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, -0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, 1.0, 0.0),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(0.5, 0.5, -0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, 1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, -0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, 1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, 0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, 1.0, 0.0),
-            ),
-        ],
-        // -y face
-        [
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, -0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, -1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, -0.5, -0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, -1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, -0.5, 0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, -1.0, 0.0),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(0.5, -0.5, 0.5),
-                vec3(1.0, 0.0, 0.0),
-                vec3(0.0, -1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, 0.5),
-                vec3(0.0, 1.0, 0.0),
-                vec3(0.0, -1.0, 0.0),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, -0.5),
-                vec3(0.0, 0.0, 1.0),
-                vec3(0.0, -1.0, 0.0),
-            ),
-        ],
-    ]
-}
-
-fn overlapping_tri_mesh() -> [[BasicVertexData; 3]; 2] {
-    [
-        [
-            BasicVertexData::new(
-                vec3(-0.5, 0.5, 0.2),
-                vec3(0.054, 0.242, 0.913),
-                vec3(0.206010481, 0.0, 0.978549785),
-            ),
-            BasicVertexData::new(
-                vec3(-0.5, -0.5, 0.2),
-                vec3(0.054, 0.242, 0.913),
-                vec3(0.206010481, 0.0, 0.978549785),
-            ),
-            BasicVertexData::new(
-                vec3(1.4, 0.0, -0.2),
-                vec3(0.054, 0.242, 0.913),
-                vec3(0.206010481, 0.0, 0.978549785),
-            ),
-        ],
-        [
-            BasicVertexData::new(
-                vec3(0.5, -0.5, 0.2),
-                vec3(0.209, 0.791, 0.036),
-                vec3(-0.206010481, 0.0, 0.978549785),
-            ),
-            BasicVertexData::new(
-                vec3(0.5, 0.5, 0.2),
-                vec3(0.209, 0.791, 0.036),
-                vec3(-0.206010481, 0.0, 0.978549785),
-            ),
-            BasicVertexData::new(
-                vec3(-1.4, 0.0, -0.2),
-                vec3(0.209, 0.791, 0.036),
-                vec3(-0.206010481, 0.0, 0.978549785),
-            ),
-        ],
-    ]
-}
-
 pub struct Renderer {
     depth_buffer: Image<DepthF32>,
     size: Vector2<i32>,
-    cube: [[BasicVertexData; 3]; 12],
-    overlapping_tris: [[BasicVertexData; 3]; 2],
     chunk_manager: ChunkManager,
 }
 
@@ -372,8 +115,6 @@ impl Renderer {
                 viewport_size.height,
             ),
             size: vec2(viewport_size.width as i32, viewport_size.height as i32),
-            cube: cube_mesh(),
-            overlapping_tris: overlapping_tri_mesh(),
             chunk_manager: ChunkManager::new(),
         }
     }
@@ -389,22 +130,13 @@ impl Renderer {
 }
 
 pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, camera: &Camera) {
-    let model_matrix1 = Matrix4::from_translation(vec3(1.5, 0.0, -3.0 * time.as_secs_f32().sin()))
-        * Matrix4::from_angle_x(Rad(time.as_secs_f32().sin()))
-        * Matrix4::from_angle_y(Rad(time.as_secs_f32()));
-    let model_matrix2 = Matrix4::from_translation(vec3(-1.5, 0.0, -3.0))
-        * Matrix4::from_angle_x(Rad(-(1.234 * time.as_secs_f32()).sin()))
-        * Matrix4::from_angle_y(Rad(-0.8 * time.as_secs_f32()));
-    let model_matrix3 = Matrix4::from_translation(vec3(0.0, 0.0, -3.0 * time.as_secs_f32().sin()))
-        * Matrix4::from_angle_x(Rad(-(1.234 * time.as_secs_f32()).sin()))
-        * Matrix4::from_angle_y(Rad(-0.8 * time.as_secs_f32()));
     let view_matrix = camera.view_matrix();
     let proj_matrix = PERSPECTIVE_CORRECTION
         * perspective(
             Rad(f32::consts::PI / 3.0),
             renderer.aspect_ratio(),
             0.1,
-            100.0,
+            200.0,
         );
 
     renderer.chunk_manager.update_chunks(camera.position.xz());
@@ -427,27 +159,6 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
         DepthState::CompareAndWrite(renderer.depth_buffer.view_mut(), DepthTest::Less);
 
     let mut uniform_buffer = Vec::new();
-
-    uniform_buffer.push(BasicUniforms::new(
-        &model_matrix1,
-        &view_matrix,
-        &proj_matrix,
-    ));
-    uniform_buffer.push(BasicUniforms::new(
-        &model_matrix2,
-        &view_matrix,
-        &proj_matrix,
-    ));
-    uniform_buffer.push(BasicUniforms::new(
-        &model_matrix3,
-        &view_matrix,
-        &proj_matrix,
-    ));
-    uniform_buffer.push(BasicUniforms::new(
-        &Matrix4::from_translation(vec3(0.0, 0.0, -5.0)),
-        &view_matrix,
-        &proj_matrix,
-    ));
 
     for chunk in &renderer
         .chunk_manager
@@ -475,16 +186,6 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
         ),
     );
 
-    for i in 0..3 {
-        for tri in &renderer.cube {
-            pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [i, 0, 0, 0]);
-        }
-    }
-
-    for tri in renderer.overlapping_tris {
-        pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [3, 0, 0, 0]);
-    }
-
     for (idx, &chunk) in (&renderer
         .chunk_manager
         .get_active_chunks(camera.position.xz()))
@@ -497,7 +198,7 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
                 &tri[0],
                 &tri[1],
                 &tri[2],
-                [idx as u32 + 4, 0, 0, 0],
+                [idx as u32, 0, 0, 0],
             );
         }
     }

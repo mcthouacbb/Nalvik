@@ -1,14 +1,27 @@
-use cgmath::{InnerSpace, Vector2, Vector3, vec3};
-use noise::NoiseFn;
+use cgmath::{InnerSpace, Vector2, Vector3, vec2, vec3};
 
-use crate::render::BasicVertexData;
+use crate::{render::BasicVertexData, terrain::noise::Noise};
+
+fn triangle_color(pos0: Vector3<f32>, pos1: Vector3<f32>, pos2: Vector3<f32>) -> Vector3<f32> {
+    let avg_height = (pos0.y + pos1.y + pos2.y) / 3.0;
+    if avg_height < 0.3 {
+        vec3(0.365, 0.702, 0.91)
+    } else if avg_height < 1.5 {
+        vec3(0.831, 0.761, 0.325)
+    } else if avg_height < 3.5 {
+        vec3(0.086, 0.651, 0.357)
+    } else if avg_height < 9.5 {
+        vec3(0.459, 0.329, 0.082)
+    } else {
+        vec3(0.7, 0.8, 0.9)
+    }
+}
 
 pub struct TerrainChunk {
     mesh: Vec<[BasicVertexData; 3]>,
     noise_values: Vec<f32>,
     base_pos: Vector2<i32>,
     size: Vector2<i32>,
-    color: Vector3<f32>,
 }
 
 impl TerrainChunk {
@@ -46,45 +59,41 @@ impl TerrainChunk {
                 );
 
                 let normal1 = (c - a).cross(b - a).normalize();
+                let color1 = triangle_color(a, b, c);
                 self.mesh.push([
-                    BasicVertexData::new(a, self.color, normal1),
-                    BasicVertexData::new(c, self.color, normal1),
-                    BasicVertexData::new(b, self.color, normal1),
+                    BasicVertexData::new(a, color1, normal1),
+                    BasicVertexData::new(c, color1, normal1),
+                    BasicVertexData::new(b, color1, normal1),
                 ]);
                 let normal2 = (b - d).cross(c - d).normalize();
+                let color2 = triangle_color(b, c, d);
                 self.mesh.push([
-                    BasicVertexData::new(b, self.color, normal2),
-                    BasicVertexData::new(c, self.color, normal2),
-                    BasicVertexData::new(d, self.color, normal2),
+                    BasicVertexData::new(b, color2, normal2),
+                    BasicVertexData::new(c, color2, normal2),
+                    BasicVertexData::new(d, color2, normal2),
                 ]);
             }
         }
     }
 }
 
-pub fn generate_single_chunk(
-    base_pos: Vector2<i32>,
-    mut size: Vector2<i32>,
-    color: Vector3<f32>,
-) -> TerrainChunk {
+pub fn generate_single_chunk(base_pos: Vector2<i32>, mut size: Vector2<i32>) -> TerrainChunk {
     size.x += 1;
     size.y += 1;
 
-    let noise = noise::OpenSimplex::new(0x2A8d2F39);
+    let noise = Noise::new();
     let mut terrain = TerrainChunk {
         mesh: Vec::new(),
         noise_values: vec![0.0; (size.x * size.y) as usize],
         base_pos,
         size,
-        color,
     };
 
     for y in 0..size.y {
         for x in 0..size.x {
             let idx = terrain.noise_idx(x, y);
             terrain.noise_values[idx] =
-                noise.get([(x + base_pos.x) as f64 * 0.2, (y + base_pos.y) as f64 * 0.2]) as f32
-                    * 5.0;
+                noise.get(vec2((base_pos.x + x) as f32, (base_pos.y + y) as f32)) as f32;
         }
     }
 

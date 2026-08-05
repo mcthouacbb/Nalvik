@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use cgmath::{Vector2, vec2, vec3};
+use cgmath::{Vector2, vec2};
 
 use crate::terrain::chunk::{TerrainChunk, generate_single_chunk};
 
 const CHUNK_SIZE: Vector2<i32> = vec2(16, 16);
-const CHUNK_LOAD_RADIUS: i32 = 4;
+const CHUNK_LOAD_RADIUS: i32 = 8;
 
 pub struct ChunkManager {
     chunk_map: HashMap<Vector2<i32>, TerrainChunk>,
@@ -34,7 +34,6 @@ impl ChunkManager {
                         generate_single_chunk(
                             vec2(16 * (chunk_pos_x + dx) - 8, 16 * (chunk_pos_z + dz) - 8),
                             CHUNK_SIZE,
-                            vec3(1.0, 1.0, 1.0),
                         ),
                     );
                 }
