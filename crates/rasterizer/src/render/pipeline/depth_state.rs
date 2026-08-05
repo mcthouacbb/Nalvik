@@ -30,28 +30,3 @@ pub enum DepthState<'a, D: DepthFormat> {
     CompareAndWrite(ImageViewMut<'a, D>, DepthTest),
     None,
 }
-
-impl<'a, D: DepthFormat> DepthState<'a, D> {
-    pub fn keep_fragment(&mut self, x: u32, y: u32, depth: f32) -> bool {
-        match self {
-            Self::CompareOnly(image_view, depth_test) => {
-                depth_test.compare(image_view.get(x, y), &D::from(depth))
-            }
-            Self::WriteOnly(image_view) => {
-                *image_view.get_mut(x, y) = D::from(depth);
-                true
-            }
-            Self::CompareAndWrite(image_view, depth_test) => {
-                let old = image_view.get_mut(x, y);
-                let new = D::from(depth);
-                if depth_test.compare(old, &new) {
-                    *old = new;
-                    true
-                } else {
-                    false
-                }
-            }
-            Self::None => true,
-        }
-    }
-}

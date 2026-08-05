@@ -19,6 +19,7 @@ use crate::{
             Pipeline, VertexOutput,
             depth_state::{DepthState, DepthTest},
         },
+        uniform::{Uniforms, unit_type_buf},
     },
     terrain::manager::ChunkManager,
     util::PERSPECTIVE_CORRECTION,
@@ -28,7 +29,7 @@ mod clip;
 mod image;
 mod pipeline;
 mod rasterize;
-mod uniforms;
+mod uniform;
 
 #[derive(Clone, Copy)]
 pub struct BasicVertexData {
@@ -76,7 +77,7 @@ impl BasicUniforms {
 
 fn vertex_shader(
     vertex_input: &BasicVertexData,
-    uniforms: &BasicUniforms,
+    (uniforms, _, _, _): (&BasicUniforms, &(), &(), &()),
 ) -> VertexOutput<BasicVertexOutput> {
     let out_pos = uniforms.mvp_matrix * vertex_input.pos.extend(1.0);
     let out_normal = (uniforms.normal_matrix * vertex_input.normal).normalize();
@@ -89,8 +90,11 @@ fn vertex_shader(
     }
 }
 
-fn fragment_shader(fragment_input: &BasicVertexOutput, _uniforms: ()) -> Vector4<f32> {
-    // (-0.4, -1, -0.5).normalized()
+fn fragment_shader(
+    fragment_input: &BasicVertexOutput,
+    _: (&BasicUniforms, &(), &(), &()),
+) -> Vector4<f32> {
+    // vec3(-0.4, -1, -0.5).normalized()
     const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
     let brightness = 0.5 * (fragment_input.normal.normalize().dot(-LIGHT_DIR) + 1.0);
     (fragment_input.color * brightness).extend(1.0)
@@ -403,6 +407,8 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
             100.0,
         );
 
+    renderer.chunk_manager.update_chunks(camera.position.xz());
+
     let pipeline = Pipeline::new(vertex_shader, fragment_shader);
 
     // clear buffer
@@ -420,44 +426,29 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
     let mut depth_state =
         DepthState::CompareAndWrite(renderer.depth_buffer.view_mut(), DepthTest::Less);
 
-    for i in 0..3 {
-        let model_matrix = if i == 0 {
-            &model_matrix1
-        } else if i == 1 {
-            &model_matrix2
-        } else {
-            &model_matrix3
-        };
+    let mut uniform_buffer = Vec::new();
 
-        for tri in &renderer.cube {
-            pipeline.run(
-                &BasicUniforms::new(model_matrix, &view_matrix, &proj_matrix),
-                (),
-                &tri[0],
-                &tri[1],
-                &tri[2],
-                renderer.size,
-                &mut framebuffer,
-                &mut depth_state,
-            );
-        }
-    }
+    uniform_buffer.push(BasicUniforms::new(
+        &model_matrix1,
+        &view_matrix,
+        &proj_matrix,
+    ));
+    uniform_buffer.push(BasicUniforms::new(
+        &model_matrix2,
+        &view_matrix,
+        &proj_matrix,
+    ));
+    uniform_buffer.push(BasicUniforms::new(
+        &model_matrix3,
+        &view_matrix,
+        &proj_matrix,
+    ));
+    uniform_buffer.push(BasicUniforms::new(
+        &Matrix4::from_translation(vec3(0.0, 0.0, -5.0)),
+        &view_matrix,
+        &proj_matrix,
+    ));
 
-    let model_matrix = Matrix4::from_translation(vec3(0.0, 0.0, -5.0));
-    for tri in renderer.overlapping_tris {
-        pipeline.run(
-            &BasicUniforms::new(&model_matrix, &view_matrix, &proj_matrix),
-            (),
-            &tri[0],
-            &tri[1],
-            &tri[2],
-            renderer.size,
-            &mut framebuffer,
-            &mut depth_state,
-        );
-    }
-
-    renderer.chunk_manager.update_chunks(camera.position.xz());
     for chunk in &renderer
         .chunk_manager
         .get_active_chunks(camera.position.xz())
@@ -467,17 +458,49 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
             -3.0,
             chunk.base_pos().y as f32,
         ));
+        uniform_buffer.push(BasicUniforms::new(
+            &model_matrix,
+            &view_matrix,
+            &proj_matrix,
+        ));
+    }
+
+    let mut render_pass = pipeline.begin_render_pass(
+        renderer.size,
+        Uniforms::new(
+            &uniform_buffer,
+            unit_type_buf(),
+            unit_type_buf(),
+            unit_type_buf(),
+        ),
+    );
+
+    for i in 0..3 {
+        for tri in &renderer.cube {
+            pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [i, 0, 0, 0]);
+        }
+    }
+
+    for tri in renderer.overlapping_tris {
+        pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [3, 0, 0, 0]);
+    }
+
+    for (idx, &chunk) in (&renderer
+        .chunk_manager
+        .get_active_chunks(camera.position.xz()))
+        .iter()
+        .enumerate()
+    {
         for tri in chunk.mesh() {
-            pipeline.run(
-                &BasicUniforms::new(&model_matrix, &view_matrix, &proj_matrix),
-                (),
+            pipeline.add_triangle(
+                &mut render_pass,
                 &tri[0],
                 &tri[1],
                 &tri[2],
-                renderer.size,
-                &mut framebuffer,
-                &mut depth_state,
+                [idx as u32 + 4, 0, 0, 0],
             );
         }
     }
+
+    pipeline.run(&mut render_pass, &mut framebuffer, &mut depth_state);
 }

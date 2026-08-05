@@ -17,6 +17,14 @@ impl<'a, T: ImageFormat> ImageView<'a, T> {
         }
     }
 
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
     pub fn get(&self, x: u32, y: u32) -> &T {
         &self.data[(y * self.width + x) as usize]
     }
@@ -36,6 +44,14 @@ impl<'a, T: ImageFormat> ImageViewMut<'a, T> {
             width,
             height,
         }
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
     }
 
     pub fn get(&self, x: u32, y: u32) -> &T {

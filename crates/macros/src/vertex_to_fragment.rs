@@ -3,15 +3,6 @@ use proc_macro_crate::{FoundCrate, crate_name};
 use quote::{quote, quote_spanned};
 use syn::{Data, DeriveInput, Fields, Ident, parse_macro_input};
 
-/*
-
-// TODO: derive macro for this to make things easier
-pub trait VertexToFragment {
-    fn scale_w(&mut self, scale: f32);
-    fn interpolate(a: &Self, b: &Self, c: &Self, barycentric: Vector3<f32>) -> Self;
-}
-
-*/
 pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 

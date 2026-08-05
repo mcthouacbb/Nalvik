@@ -21,6 +21,14 @@ impl<T: ImageFormat> Image<T> {
         }
     }
 
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
     pub fn view(&self) -> ImageView<'_, T> {
         ImageView::new(&self.data, self.width, self.height)
     }

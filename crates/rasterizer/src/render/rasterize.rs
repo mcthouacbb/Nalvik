@@ -1,17 +1,17 @@
-use cgmath::{Vector2, Vector3, vec2, vec3};
+use cgmath::{Vector2, Vector3, Vector4, vec2, vec3};
+
+use crate::render::{
+    pipeline::{
+        render_pass::{RenderPass, TriangleData},
+        vertex_to_fragment::VertexToFragment,
+    },
+    uniform::Uniform,
+};
 
 const ONE: i32 = 256;
 const HALF: i32 = ONE / 2;
 
 const _: () = assert!(ONE & (ONE - 1) == 0 && ONE > 1);
-
-fn fixed_floor(x: i32) -> i32 {
-    x & !(ONE - 1)
-}
-
-fn fixed_ceil(x: i32) -> i32 {
-    fixed_floor(x + ONE - 1)
-}
 
 // v should be in [-1, 1]^2
 fn to_viewport(v: Vector2<f32>, viewport_size: Vector2<i32>) -> Vector2<i32> {
@@ -21,6 +21,7 @@ fn to_viewport(v: Vector2<f32>, viewport_size: Vector2<i32>) -> Vector2<i32> {
     )
 }
 
+#[derive(Clone, Copy)]
 struct EdgeFn {
     pub dx: i64,
     pub dy: i64,
@@ -47,17 +48,36 @@ impl EdgeFn {
     }
 }
 
-// must be CCW winding order
-pub fn rasterize_triangle(
-    v0: Vector2<f32>,
-    v1: Vector2<f32>,
-    v2: Vector2<f32>,
-    viewport_size: Vector2<i32>,
-    mut pixel_fn: impl FnMut(u32, u32, Vector3<f32>),
+pub const TILE_SIZE: i32 = 16;
+
+#[derive(Clone, Copy)]
+pub struct RasterizationInfo {
+    edge_fns: [EdgeFn; 3],
+    norms: [f32; 3],
+}
+
+pub fn add_triangle_to_pass<
+    Vo: VertexToFragment,
+    U0: Uniform,
+    U1: Uniform,
+    U2: Uniform,
+    U3: Uniform,
+>(
+    ndc0: &Vector4<f32>,
+    ndc1: &Vector4<f32>,
+    ndc2: &Vector4<f32>,
+    inv_w0: f32,
+    inv_w1: f32,
+    inv_w2: f32,
+    vo0: Vo,
+    vo1: Vo,
+    vo2: Vo,
+    uniform_indices: [u32; 4],
+    render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
 ) {
-    let v0 = to_viewport(v0, viewport_size);
-    let v1 = to_viewport(v1, viewport_size);
-    let v2 = to_viewport(v2, viewport_size);
+    let v0 = to_viewport(ndc0.xy(), render_pass.viewport_size());
+    let v1 = to_viewport(ndc1.xy(), render_pass.viewport_size());
+    let v2 = to_viewport(ndc2.xy(), render_pass.viewport_size());
 
     let edge0 = EdgeFn::from_edge(v1, v2);
     let edge1 = EdgeFn::from_edge(v2, v0);
@@ -67,43 +87,100 @@ pub fn rasterize_triangle(
     let norm1 = 1.0 / edge1.evaluate(v1) as f32;
     let norm2 = 1.0 / edge2.evaluate(v2) as f32;
 
+    let triangle_id = render_pass.add_triangle(
+        RasterizationInfo {
+            edge_fns: [edge0, edge1, edge2],
+            norms: [norm0, norm1, norm2],
+        },
+        [vo0, vo1, vo2],
+        [inv_w0, inv_w1, inv_w2],
+        [ndc0.z, ndc1.z, ndc2.z],
+        uniform_indices,
+    );
+
     let min_x = v0.x.min(v1.x).min(v2.x);
-    let max_x = v0.x.max(v1.x).max(v2.x).min(viewport_size.x * ONE);
+    let max_x =
+        v0.x.max(v1.x)
+            .max(v2.x)
+            .min(render_pass.viewport_size().x * ONE);
     let min_y = v0.y.min(v1.y).min(v2.y);
-    let max_y = v0.y.max(v1.y).max(v2.y).min(viewport_size.y * ONE);
+    let max_y =
+        v0.y.max(v1.y)
+            .max(v2.y)
+            .min(render_pass.viewport_size().y * ONE);
 
-    let base_x = fixed_ceil(min_x - HALF).max(0) + HALF;
-    let base_y = fixed_ceil(min_y - HALF).max(0) + HALF;
+    let tile_min_x = (min_x.max(0) + HALF) / (TILE_SIZE * ONE);
+    let tile_min_y = (min_y.max(0) + HALF) / (TILE_SIZE * ONE);
 
-    let mut e0_base = edge0.evaluate(vec2(base_x, base_y));
-    let mut e1_base = edge1.evaluate(vec2(base_x, base_y));
-    let mut e2_base = edge2.evaluate(vec2(base_x, base_y));
+    let tile_max_x = (max_x + TILE_SIZE * ONE - HALF) / (TILE_SIZE * ONE);
+    let tile_max_y = (max_y + TILE_SIZE * ONE - HALF) / (TILE_SIZE * ONE);
 
-    let mut y = base_y;
-    while y < max_y {
-        debug_assert!(y % ONE == HALF);
+    let mut tile_y = tile_min_y;
+    while tile_y < tile_max_y && tile_y < render_pass.num_tiles().y {
+        let mut tile_x = tile_min_x;
+        while tile_x < tile_max_x && tile_x < render_pass.num_tiles().x {
+            render_pass.add_tri_to_tile(vec2(tile_x, tile_y), triangle_id);
 
-        let mut e0 = e0_base;
-        let mut e1 = e1_base;
-        let mut e2 = e2_base;
-        let mut x = base_x;
-        while x < max_x {
-            debug_assert!(x % ONE == HALF);
-
-            if e0 >= 0 && e1 >= 0 && e2 >= 0 {
-                let barycentric = vec3(e0 as f32 * norm0, e1 as f32 * norm1, e2 as f32 * norm2);
-                pixel_fn((x / ONE) as u32, (y / ONE) as u32, barycentric);
-            }
-
-            e0 += edge0.dx * ONE as i64;
-            e1 += edge1.dx * ONE as i64;
-            e2 += edge2.dx * ONE as i64;
-            x += ONE;
+            tile_x += 1;
         }
 
-        e0_base += edge0.dy * ONE as i64;
-        e1_base += edge1.dy * ONE as i64;
-        e2_base += edge2.dy * ONE as i64;
-        y += ONE;
+        tile_y += 1;
+    }
+}
+
+pub fn rasterize_tile<Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Uniform, U3: Uniform>(
+    tile: Vector2<i32>,
+    render_pass: &RenderPass<Vo, U0, U1, U2, U3>,
+    mut pixel_fn: impl FnMut(u32, u32, Vector3<f32>, &TriangleData<Vo>),
+) {
+    for tri in render_pass.tile_tri_indices(tile) {
+        let triangle_data = render_pass.triangle_data(*tri as usize);
+        let raster_info = triangle_data.0;
+
+        let base_x = tile.x * TILE_SIZE * ONE + HALF;
+        let base_y = tile.y * TILE_SIZE * ONE + HALF;
+        let max_x = ((tile.x + 1) * TILE_SIZE).min(render_pass.viewport_size().x) * ONE;
+        let max_y = ((tile.y + 1) * TILE_SIZE).min(render_pass.viewport_size().y) * ONE;
+
+        let mut e0_base = raster_info.edge_fns[0].evaluate(vec2(base_x, base_y));
+        let mut e1_base = raster_info.edge_fns[1].evaluate(vec2(base_x, base_y));
+        let mut e2_base = raster_info.edge_fns[2].evaluate(vec2(base_x, base_y));
+
+        let mut y = base_y;
+        while y < max_y {
+            debug_assert!(y % ONE == HALF);
+
+            let mut e0 = e0_base;
+            let mut e1 = e1_base;
+            let mut e2 = e2_base;
+            let mut x = base_x;
+            while x < max_x {
+                debug_assert!(x % ONE == HALF);
+
+                if e0 >= 0 && e1 >= 0 && e2 >= 0 {
+                    let barycentric = vec3(
+                        e0 as f32 * raster_info.norms[0],
+                        e1 as f32 * raster_info.norms[1],
+                        e2 as f32 * raster_info.norms[2],
+                    );
+                    pixel_fn(
+                        (x / ONE) as u32,
+                        (y / ONE) as u32,
+                        barycentric,
+                        &triangle_data.1,
+                    );
+                }
+
+                e0 += raster_info.edge_fns[0].dx * ONE as i64;
+                e1 += raster_info.edge_fns[1].dx * ONE as i64;
+                e2 += raster_info.edge_fns[2].dx * ONE as i64;
+                x += ONE;
+            }
+
+            e0_base += raster_info.edge_fns[0].dy * ONE as i64;
+            e1_base += raster_info.edge_fns[1].dy * ONE as i64;
+            e2_base += raster_info.edge_fns[2].dy * ONE as i64;
+            y += ONE;
+        }
     }
 }

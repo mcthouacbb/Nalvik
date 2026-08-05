@@ -5,18 +5,20 @@ use crate::render::pipeline::{VertexOutput, vertex_to_fragment::VertexToFragment
 
 pub const BUF_SIZE: usize = 32 * 3;
 
-/* clip space bounds
-  -w <= x <= w
-  -w <= y <= w
-  0 <= z <= w
+/*
+ * clip space bounds
+ * -w <= x <= w
+ * -w <= y <= w
+ *  0 <= z <= w
+ *
+ * technically w > 0 is also a bound, but I'll just assume
+ * it's true given the other 3 bounds even though it
+ * isn't in general
+ *
+ * guard band clipping is used, so x and y can appear outside the specified range
+ * but they will not be so large as to cause overflows during rasterization
+ */
 
-  technically w > 0 is also a bound, but I'll just assume
-  it's true given the other 3 bounds even though it
-  isn't in general
-
-  guard band clipping is used, so x and y can appear outside the specified range
-  but they will not be so large as to cause overflows during rasterization
-*/
 pub fn clip_triangle<Vo: VertexToFragment>(
     v0: &VertexOutput<Vo>,
     v1: &VertexOutput<Vo>,

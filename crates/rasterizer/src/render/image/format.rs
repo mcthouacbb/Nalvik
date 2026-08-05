@@ -1,7 +1,7 @@
 use bytemuck::{AnyBitPattern, NoUninit};
 use cgmath::Vector4;
 
-pub trait ImageFormat: Copy {}
+pub trait ImageFormat: Copy + Sync + Send {}
 pub trait DepthFormat: ImageFormat + From<f32> {
     fn compare_less(a: &Self, b: &Self) -> bool;
     fn compare_greater(a: &Self, b: &Self) -> bool;

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc, time::Instant};
 
-use cgmath::{Vector2, Vector3, vec2, vec3};
+use cgmath::{vec2, vec3};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     application::ApplicationHandler,
