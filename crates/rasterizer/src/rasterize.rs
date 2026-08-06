@@ -1,6 +1,6 @@
 use cgmath::{Vector2, Vector3, Vector4, vec2, vec3};
 
-use crate::render::{
+use crate::{
     pipeline::{
         render_pass::{RenderPass, TriangleData},
         vertex_to_fragment::VertexToFragment,

@@ -8,7 +8,10 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
 
     let crate_name = match crate_name("rasterizer") {
         Ok(FoundCrate::Itself) => quote!(crate),
-        Ok(FoundCrate::Name(name)) => quote!(::#name),
+        Ok(FoundCrate::Name(name)) => {
+            let name = syn::Ident::new(name.as_str(), proc_macro2::Span::call_site());
+            quote!(::#name)
+        }
         Err(_) => {
             return quote! {
                 compile_error!("Could not find dependency rasterizer.")
@@ -18,10 +21,10 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
     };
 
     let trait_path = quote! {
-        #crate_name::render::pipeline::vertex_to_fragment::VertexToFragment
+        #crate_name::VertexToFragment
     };
 
-    match ast.data {
+    let result = match ast.data {
         Data::Struct(structure) => {
             let name = ast.ident;
             match structure.fields {
@@ -98,5 +101,7 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
             compile_error!("VertexToFragment cannot be derived on unions")
         },
     }
-    .into()
+    .into();
+    eprintln!("Result:\n{}", result);
+    result
 }

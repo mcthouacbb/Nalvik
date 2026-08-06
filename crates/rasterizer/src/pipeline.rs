@@ -2,7 +2,7 @@ use arrayvec::ArrayVec;
 use cgmath::{Vector2, Vector3, Vector4, vec2};
 use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
-use crate::render::{
+use crate::{
     clip,
     image::{
         format::{DepthFormat, ImageFormat, RgbaF32},

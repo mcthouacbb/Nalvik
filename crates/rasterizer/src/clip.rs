@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 use cgmath::{Vector2, Vector4, prelude::*, vec4};
 
-use crate::render::pipeline::{VertexOutput, vertex_to_fragment::VertexToFragment};
+use crate::pipeline::{VertexOutput, vertex_to_fragment::VertexToFragment};
 
 pub const BUF_SIZE: usize = 32 * 3;
 

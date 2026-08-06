@@ -13,7 +13,7 @@ use winit::{
 
 use crate::{
     camera::Camera,
-    render::{Renderer, render},
+    render::{render, Renderer},
 };
 
 pub struct App<'a> {

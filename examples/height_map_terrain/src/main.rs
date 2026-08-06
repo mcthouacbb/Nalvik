@@ -1,7 +1,6 @@
 mod app;
 mod camera;
 mod render;
-mod util;
 mod terrain;
 
 use winit::event_loop::{ControlFlow, EventLoop};

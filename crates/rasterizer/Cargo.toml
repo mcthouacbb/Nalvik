@@ -6,9 +6,6 @@ edition = "2024"
 [dependencies]
 macros = { path = "../macros" }
 cgmath = { workspace = true }
-pixels = "0.17.2"
-winit = "0.30.13"
 arrayvec = "0.7.8"
 bytemuck = "1.25.2"
-noise = "0.9.0"
 rayon = "1.12.0"

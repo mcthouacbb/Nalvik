@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use crate::render::image::{format::ImageFormat, view::ImageViewMut};
+use crate::image::{format::ImageFormat, view::ImageViewMut};
 
 pub struct TileMut<T: ImageFormat> {
     base_ptr: NonNull<T>,

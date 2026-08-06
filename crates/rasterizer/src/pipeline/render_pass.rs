@@ -1,6 +1,6 @@
 use cgmath::{Vector2, vec2};
 
-use crate::render::{
+use crate::{
     pipeline::vertex_to_fragment::VertexToFragment,
     rasterize::{RasterizationInfo, TILE_SIZE},
     uniform::{Uniform, Uniforms},

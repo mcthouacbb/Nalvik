@@ -2,7 +2,8 @@
 resolver = "3"
 members = [
     "crates/rasterizer",
-    "crates/macros"
+    "crates/macros",
+    "examples/height_map_terrain",
 ]
 
 [workspace.dependencies]

@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use cgmath::Vector4;
 
-use crate::render::{pipeline::vertex_to_fragment::VertexToFragment, uniform::Uniform};
+use crate::{pipeline::vertex_to_fragment::VertexToFragment, uniform::Uniform};
 
 pub struct FragmentShader<
     I: VertexToFragment,

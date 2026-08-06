@@ -4,32 +4,13 @@ use cgmath::{
     InnerSpace, Matrix, Matrix3, Matrix4, Rad, SquareMatrix, Vector2, Vector3, Vector4,
     perspective, vec2, vec3,
 };
-use macros::VertexToFragment;
+use rasterizer::{
+    DepthState, DepthTest, Image, ImageViewMut, PERSPECTIVE_CORRECTION, Pipeline, Uniforms,
+    VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
+};
 use winit::dpi::PhysicalSize;
 
-use crate::{
-    camera::Camera,
-    render::{
-        image::{
-            Image,
-            format::{DepthF32, RgbaU8},
-            view::ImageViewMut,
-        },
-        pipeline::{
-            Pipeline, VertexOutput,
-            depth_state::{DepthState, DepthTest},
-        },
-        uniform::{Uniforms, unit_type_buf},
-    },
-    terrain::manager::ChunkManager,
-    util::PERSPECTIVE_CORRECTION,
-};
-
-mod clip;
-mod image;
-mod pipeline;
-mod rasterize;
-mod uniform;
+use crate::{camera::Camera, terrain::manager::ChunkManager};
 
 #[derive(Clone, Copy)]
 pub struct BasicVertexData {
@@ -148,11 +129,8 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
         pix.copy_from_slice(&[108, 182, 204, 0xFF]);
     }
 
-    let mut framebuffer = ImageViewMut::new(
-        bytemuck::cast_slice_mut::<u8, RgbaU8>(pixel_buffer),
-        renderer.size.x as u32,
-        renderer.size.y as u32,
-    );
+    let mut framebuffer =
+        ImageViewMut::over_raw_bytes(pixel_buffer, renderer.size.x as u32, renderer.size.y as u32);
 
     renderer.depth_buffer.clear(DepthF32::new(1.0));
     let mut depth_state =

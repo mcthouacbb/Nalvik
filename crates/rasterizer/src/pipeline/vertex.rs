@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::render::{
+use crate::{
     pipeline::{VertexOutput, vertex_to_fragment::VertexToFragment},
     uniform::Uniform,
 };

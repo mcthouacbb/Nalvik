@@ -1,4 +1,4 @@
-use crate::render::image::{
+use crate::image::{
     format::DepthFormat,
     view::{ImageView, ImageViewMut},
 };
