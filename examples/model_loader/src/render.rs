@@ -5,35 +5,32 @@ use cgmath::{
     perspective, vec2, vec3,
 };
 use rasterizer::{
-    DepthState, DepthTest, Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION, Pipeline, Uniforms,
-    VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
+    DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut,
+    PERSPECTIVE_CORRECTION, Pipeline, Sampler2d, Uniforms, VertexOutput, VertexToFragment,
+    format::{DepthF32, RgbaU8},
+    unit_type_buf,
 };
 use winit::dpi::PhysicalSize;
 
-use crate::{camera::Camera, terrain::manager::ChunkManager};
-
-#[derive(Clone, Copy)]
-pub struct BasicVertexData {
-    pos: Vector3<f32>,
-    color: Vector3<f32>,
-    normal: Vector3<f32>,
-}
-
-impl BasicVertexData {
-    pub fn new(pos: Vector3<f32>, color: Vector3<f32>, normal: Vector3<f32>) -> Self {
-        Self { pos, color, normal }
-    }
-}
+use crate::{
+    camera::Camera,
+    models::{VertexData, cube::cube_model},
+};
 
 #[derive(Clone, Copy, VertexToFragment)]
 struct BasicVertexOutput {
-    color: Vector3<f32>,
+    uv: Vector2<f32>,
     normal: Vector3<f32>,
 }
 
 struct BasicUniforms {
     mvp_matrix: Matrix4<f32>,
     normal_matrix: Matrix3<f32>,
+}
+
+struct TextureUniforms<'a> {
+    texture: Image2dView<'a, RgbaU8>,
+    sampler: Sampler2d,
 }
 
 impl BasicUniforms {
@@ -57,15 +54,15 @@ impl BasicUniforms {
 }
 
 fn vertex_shader(
-    vertex_input: &BasicVertexData,
-    (uniforms, _, _, _): (&BasicUniforms, &(), &(), &()),
+    vertex_input: &VertexData,
+    (uniforms, _, _, _): (&BasicUniforms, &TextureUniforms<'_>, &(), &()),
 ) -> VertexOutput<BasicVertexOutput> {
-    let out_pos = uniforms.mvp_matrix * vertex_input.pos.extend(1.0);
-    let out_normal = (uniforms.normal_matrix * vertex_input.normal).normalize();
+    let out_pos = uniforms.mvp_matrix * vertex_input.pos().extend(1.0);
+    let out_normal = (uniforms.normal_matrix * vertex_input.normal()).normalize();
     VertexOutput {
         position: out_pos,
         data: BasicVertexOutput {
-            color: vertex_input.color,
+            uv: vertex_input.uv(),
             normal: out_normal,
         },
     }
@@ -73,22 +70,24 @@ fn vertex_shader(
 
 fn fragment_shader(
     fragment_input: &BasicVertexOutput,
-    _: (&BasicUniforms, &(), &(), &()),
+    (_, textures, _, _): (&BasicUniforms, &TextureUniforms<'_>, &(), &()),
 ) -> Vector4<f32> {
     // vec3(-0.4, -1, -0.5).normalized()
     const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
     let brightness = 0.5 * (fragment_input.normal.normalize().dot(-LIGHT_DIR) + 1.0);
-    (fragment_input.color * brightness).extend(1.0)
+    let color = textures.sampler.sample(textures.texture, fragment_input.uv);
+    (color.xyz() * brightness).extend(color.w)
 }
 
 pub struct Renderer {
     depth_buffer: Image2d<DepthF32>,
     size: Vector2<i32>,
-    chunk_manager: ChunkManager,
+    checker_texture: Image2d<RgbaU8>,
 }
 
 impl Renderer {
     pub fn new(viewport_size: PhysicalSize<u32>) -> Self {
+        let checker_texture = Image2d::load_from_file("assets/checker.png").expect("Could not find checker texture. Make sure you are running from the examples/model_loader directory");
         Self {
             depth_buffer: Image2d::new(
                 DepthF32::new(1.0),
@@ -96,7 +95,7 @@ impl Renderer {
                 viewport_size.height,
             ),
             size: vec2(viewport_size.width as i32, viewport_size.height as i32),
-            chunk_manager: ChunkManager::new(),
+            checker_texture,
         }
     }
 
@@ -120,8 +119,6 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
             200.0,
         );
 
-    renderer.chunk_manager.update_chunks(camera.position.xz());
-
     let pipeline = Pipeline::new(vertex_shader, fragment_shader);
 
     // clear buffer
@@ -140,48 +137,32 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
         DepthState::CompareAndWrite(renderer.depth_buffer.view_mut(), DepthTest::Less);
 
     let mut uniform_buffer = Vec::new();
+    let mut texture_buffer = Vec::new();
 
-    for chunk in &renderer
-        .chunk_manager
-        .get_active_chunks(camera.position.xz())
-    {
-        let model_matrix = Matrix4::from_translation(vec3(
-            chunk.base_pos().x as f32,
-            -3.0,
-            chunk.base_pos().y as f32,
-        ));
-        uniform_buffer.push(BasicUniforms::new(
-            &model_matrix,
-            &view_matrix,
-            &proj_matrix,
-        ));
-    }
+    let model_matrix = Matrix4::from_translation(vec3(0.0, 0.0, -4.0));
+    uniform_buffer.push(BasicUniforms::new(
+        &model_matrix,
+        &view_matrix,
+        &proj_matrix,
+    ));
+    texture_buffer.push(TextureUniforms {
+        texture: renderer.checker_texture.view(),
+        sampler: Sampler2d::new(FilterMode::Nearest),
+    });
 
     let mut render_pass = pipeline.begin_render_pass(
         renderer.size,
         Uniforms::new(
             &uniform_buffer,
-            unit_type_buf(),
+            texture_buffer.as_slice(),
             unit_type_buf(),
             unit_type_buf(),
         ),
     );
 
-    for (idx, &chunk) in (&renderer
-        .chunk_manager
-        .get_active_chunks(camera.position.xz()))
-        .iter()
-        .enumerate()
-    {
-        for tri in chunk.mesh() {
-            pipeline.add_triangle(
-                &mut render_pass,
-                &tri[0],
-                &tri[1],
-                &tri[2],
-                [idx as u32, 0, 0, 0],
-            );
-        }
+    let mesh = cube_model();
+    for tri in mesh {
+        pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [0, 0, 0, 0]);
     }
 
     pipeline.run(&mut render_pass, &mut framebuffer, &mut depth_state);

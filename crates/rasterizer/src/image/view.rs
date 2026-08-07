@@ -1,13 +1,13 @@
 use crate::{format::RgbaU8, image::format::ImageFormat};
 
-#[derive(Clone)]
-pub struct ImageView<'a, T: ImageFormat> {
+#[derive(Clone, Copy)]
+pub struct Image2dView<'a, T: ImageFormat> {
     data: &'a [T],
     width: u32,
     height: u32,
 }
 
-impl<'a, T: ImageFormat> ImageView<'a, T> {
+impl<'a, T: ImageFormat> Image2dView<'a, T> {
     pub fn new(data: &'a [T], width: u32, height: u32) -> Self {
         assert!(data.len() as u32 == width * height);
         Self {
@@ -30,7 +30,7 @@ impl<'a, T: ImageFormat> ImageView<'a, T> {
     }
 }
 
-impl<'a> ImageView<'a, RgbaU8> {
+impl<'a> Image2dView<'a, RgbaU8> {
     pub fn over_raw_bytes(bytes: &'a [u8], width: u32, height: u32) -> Self {
         Self {
             data: bytemuck::cast_slice(bytes),
@@ -40,13 +40,13 @@ impl<'a> ImageView<'a, RgbaU8> {
     }
 }
 
-pub struct ImageViewMut<'a, T: ImageFormat> {
+pub struct Image2dViewMut<'a, T: ImageFormat> {
     data: &'a mut [T],
     width: u32,
     height: u32,
 }
 
-impl<'a, T: ImageFormat> ImageViewMut<'a, T> {
+impl<'a, T: ImageFormat> Image2dViewMut<'a, T> {
     pub fn new(data: &'a mut [T], width: u32, height: u32) -> Self {
         assert!(data.len() as u32 == width * height);
         Self {
@@ -73,7 +73,7 @@ impl<'a, T: ImageFormat> ImageViewMut<'a, T> {
     }
 }
 
-impl<'a> ImageViewMut<'a, RgbaU8> {
+impl<'a> Image2dViewMut<'a, RgbaU8> {
     pub fn over_raw_bytes(bytes: &'a mut [u8], width: u32, height: u32) -> Self {
         Self {
             data: bytemuck::cast_slice_mut(bytes),

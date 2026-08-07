@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use crate::image::{format::ImageFormat, view::ImageViewMut};
+use crate::image::{format::ImageFormat, view::Image2dViewMut};
 
 pub struct TileMut<T: ImageFormat> {
     base_ptr: NonNull<T>,
@@ -11,7 +11,7 @@ pub struct TileMut<T: ImageFormat> {
 
 impl<T: ImageFormat> TileMut<T> {
     pub fn new(
-        image: &mut ImageViewMut<T>,
+        image: &mut Image2dViewMut<T>,
         width: u32,
         height: u32,
         offset_x: u32,

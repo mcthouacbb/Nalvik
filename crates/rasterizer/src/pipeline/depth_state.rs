@@ -1,6 +1,6 @@
 use crate::image::{
     format::DepthFormat,
-    view::{ImageView, ImageViewMut},
+    view::{Image2dView, Image2dViewMut},
 };
 
 #[derive(Clone, Copy)]
@@ -25,8 +25,8 @@ impl DepthTest {
 }
 
 pub enum DepthState<'a, D: DepthFormat> {
-    CompareOnly(ImageView<'a, D>, DepthTest),
-    WriteOnly(ImageViewMut<'a, D>),
-    CompareAndWrite(ImageViewMut<'a, D>, DepthTest),
+    CompareOnly(Image2dView<'a, D>, DepthTest),
+    WriteOnly(Image2dViewMut<'a, D>),
+    CompareAndWrite(Image2dViewMut<'a, D>, DepthTest),
     None,
 }

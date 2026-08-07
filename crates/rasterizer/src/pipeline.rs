@@ -6,7 +6,7 @@ use crate::{
     clip,
     image::{
         format::{DepthFormat, ImageFormat, RgbaF32},
-        view::ImageViewMut,
+        view::Image2dViewMut,
     },
     pipeline::{
         depth_state::{DepthState, DepthTest},
@@ -135,7 +135,7 @@ impl<
     pub fn run<'a, T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
         &self,
         render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
-        color_buffer: &mut ImageViewMut<'a, T>,
+        color_buffer: &mut Image2dViewMut<'a, T>,
         depth_state: &mut DepthState<'a, D>,
     ) {
         assert!(
@@ -160,8 +160,8 @@ impl<
     fn run_with_depth_compare_and_write<T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
         &self,
         render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
-        color_buffer: &mut ImageViewMut<T>,
-        depth_buffer: &mut ImageViewMut<D>,
+        color_buffer: &mut Image2dViewMut<T>,
+        depth_buffer: &mut Image2dViewMut<D>,
         depth_test: DepthTest,
     ) {
         let mut tiles =

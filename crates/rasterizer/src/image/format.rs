@@ -1,7 +1,12 @@
 use bytemuck::{AnyBitPattern, NoUninit};
-use cgmath::Vector4;
+use cgmath::{Vector4, vec4};
 
 pub trait ImageFormat: Copy + Sync + Send {}
+
+pub trait RgbaFormat: ImageFormat + From<RgbaF32> {
+    fn normalized(&self) -> Vector4<f32>;
+}
+
 pub trait DepthFormat: ImageFormat + From<f32> {
     fn compare_less(a: &Self, b: &Self) -> bool;
     fn compare_greater(a: &Self, b: &Self) -> bool;
@@ -24,6 +29,11 @@ impl RgbaF32 {
 }
 
 impl ImageFormat for RgbaF32 {}
+impl RgbaFormat for RgbaF32 {
+    fn normalized(&self) -> Vector4<f32> {
+        vec4(self.rgba[0], self.rgba[1], self.rgba[2], self.rgba[3])
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, NoUninit, AnyBitPattern)]
@@ -40,6 +50,18 @@ impl RgbaU8 {
 }
 
 impl ImageFormat for RgbaU8 {}
+
+impl RgbaFormat for RgbaU8 {
+    fn normalized(&self) -> Vector4<f32> {
+        const INV_255: f32 = 1.0 / 255.0;
+        vec4(
+            self.rgba[0] as f32 * INV_255,
+            self.rgba[1] as f32 * INV_255,
+            self.rgba[2] as f32 * INV_255,
+            self.rgba[3] as f32 * INV_255,
+        )
+    }
+}
 
 impl From<RgbaF32> for RgbaU8 {
     fn from(value: RgbaF32) -> Self {
@@ -72,6 +94,7 @@ impl From<f32> for DepthF32 {
 }
 
 impl ImageFormat for DepthF32 {}
+
 impl DepthFormat for DepthF32 {
     fn compare_less(a: &Self, b: &Self) -> bool {
         a.depth < b.depth
