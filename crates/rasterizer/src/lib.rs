@@ -8,7 +8,7 @@ mod util;
 
 pub use image::format;
 pub use image::{
-    Image2d,
+    Image2d, ImageLoadError,
     view::{Image2dView, Image2dViewMut},
 };
 pub use macros::VertexToFragment;

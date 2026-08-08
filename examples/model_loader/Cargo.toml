@@ -8,3 +8,4 @@ rasterizer = { path = "../../crates/rasterizer" }
 cgmath = { workspace = true }
 pixels = "0.17.2"
 winit = "0.30.13"
+tobj = "4.0.5"

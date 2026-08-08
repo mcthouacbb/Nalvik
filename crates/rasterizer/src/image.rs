@@ -1,4 +1,4 @@
-use std::{io, path::Path};
+use std::{error::Error, fmt, io, path::Path};
 
 use image::{ImageError, ImageReader};
 
@@ -13,6 +13,7 @@ use crate::{
 pub mod format;
 pub mod view;
 
+#[derive(Clone)]
 pub struct Image2d<T: ImageFormat> {
     data: Vec<T>,
     width: u32,
@@ -64,6 +65,15 @@ impl From<io::Error> for ImageLoadError {
 impl From<ImageError> for ImageLoadError {
     fn from(value: ImageError) -> Self {
         Self::Image(value)
+    }
+}
+
+impl fmt::Display for ImageLoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(io_err) => write!(f, "{}", io_err),
+            Self::Image(image_err) => write!(f, "{}", image_err),
+        }
     }
 }
 

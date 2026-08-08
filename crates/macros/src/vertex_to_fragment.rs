@@ -24,7 +24,7 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
         #crate_name::VertexToFragment
     };
 
-    let result = match ast.data {
+    match ast.data {
         Data::Struct(structure) => {
             let name = ast.ident;
             match structure.fields {
@@ -101,7 +101,5 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
             compile_error!("VertexToFragment cannot be derived on unions")
         },
     }
-    .into();
-    eprintln!("Result:\n{}", result);
-    result
+    .into()
 }

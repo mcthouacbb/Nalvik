@@ -1,8 +1,7 @@
 use std::{f32, time::Duration};
 
 use cgmath::{
-    InnerSpace, Matrix, Matrix3, Matrix4, Rad, SquareMatrix, Vector2, Vector3, Vector4,
-    perspective, vec2, vec3,
+    Matrix3, Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*, vec2, vec3,
 };
 use rasterizer::{
     DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut,
@@ -14,7 +13,8 @@ use winit::dpi::PhysicalSize;
 
 use crate::{
     camera::Camera,
-    models::{VertexData, cube::cube_model},
+    material::Material,
+    models::{self, ModelPath, VertexData},
 };
 
 #[derive(Clone, Copy, VertexToFragment)]
@@ -82,20 +82,19 @@ fn fragment_shader(
 pub struct Renderer {
     depth_buffer: Image2d<DepthF32>,
     size: Vector2<i32>,
-    checker_texture: Image2d<RgbaU8>,
+    models: Vec<(Vec<[VertexData; 3]>, Material)>,
 }
 
 impl Renderer {
-    pub fn new(viewport_size: PhysicalSize<u32>) -> Self {
-        let checker_texture = Image2d::load_from_file("assets/checker.png").expect("Could not find checker texture. Make sure you are running from the examples/model_loader directory");
+    pub fn new(viewport_size: PhysicalSize<u32>, model_path: &ModelPath) -> Self {
         Self {
             depth_buffer: Image2d::new(
                 DepthF32::new(1.0),
                 viewport_size.width,
                 viewport_size.height,
             ),
+            models: models::load_model(model_path),
             size: vec2(viewport_size.width as i32, viewport_size.height as i32),
-            checker_texture,
         }
     }
 
@@ -139,30 +138,39 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, 
     let mut uniform_buffer = Vec::new();
     let mut texture_buffer = Vec::new();
 
-    let model_matrix = Matrix4::from_translation(vec3(0.0, 0.0, -4.0));
     uniform_buffer.push(BasicUniforms::new(
-        &model_matrix,
+        &Matrix4::one(),
         &view_matrix,
         &proj_matrix,
     ));
-    texture_buffer.push(TextureUniforms {
-        texture: renderer.checker_texture.view(),
-        sampler: Sampler2d::new(FilterMode::Nearest),
-    });
+
+    for (_, material) in &renderer.models {
+        texture_buffer.push(TextureUniforms {
+            texture: material.diffuse_texture().view(),
+            sampler: Sampler2d::new(FilterMode::Nearest),
+        });
+    }
 
     let mut render_pass = pipeline.begin_render_pass(
         renderer.size,
         Uniforms::new(
             &uniform_buffer,
-            texture_buffer.as_slice(),
+            &texture_buffer,
             unit_type_buf(),
             unit_type_buf(),
         ),
     );
 
-    let mesh = cube_model();
-    for tri in mesh {
-        pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [0, 0, 0, 0]);
+    for (idx, (model, _)) in renderer.models.iter().enumerate() {
+        for tri in model {
+            pipeline.add_triangle(
+                &mut render_pass,
+                &tri[0],
+                &tri[1],
+                &tri[2],
+                [0, 0 + idx as u32, 0, 0],
+            )
+        }
     }
 
     pipeline.run(&mut render_pass, &mut framebuffer, &mut depth_state);

@@ -1,9 +1,6 @@
-use cgmath::{Vector2, Vector4, vec2};
+use cgmath::{Vector2, Vector4};
 
-use crate::image::{
-    format::{ImageFormat, RgbaFormat},
-    view::Image2dView,
-};
+use crate::image::{format::RgbaFormat, view::Image2dView};
 
 pub enum FilterMode {
     Nearest,
@@ -27,7 +24,7 @@ impl Sampler2d {
         match self.filter {
             FilterMode::Nearest => {
                 let texel_x = (uv.x.max(0.0) * texture.width() as f32) as u32;
-                let texel_y = (uv.y.max(0.0) * texture.height() as f32) as u32;
+                let texel_y = ((1.0 - uv.y).max(0.0) * texture.height() as f32) as u32;
                 texture
                     .get(
                         texel_x.min(texture.width() - 1),
