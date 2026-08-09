@@ -210,7 +210,6 @@ impl<'a> ApplicationHandler for App<'a> {
                     render(
                         self.renderer.as_mut().unwrap(),
                         self.pixels.as_mut().unwrap().frame_mut(),
-                        time,
                         &self.camera,
                     );
                 }

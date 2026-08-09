@@ -1,4 +1,4 @@
-use std::{error::Error, fmt, io, path::Path};
+use std::{fmt, io, path::Path};
 
 use image::{ImageError, ImageReader};
 

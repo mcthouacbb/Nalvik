@@ -1,25 +1,9 @@
-use cgmath::{InnerSpace, Vector2, Vector3, vec2, vec3};
+use cgmath::{InnerSpace, Vector2, vec2, vec3};
 
 use crate::{
     render::BasicVertexData,
     terrain::noise::{Biome, Noise},
 };
-
-/*fn triangle_color(pos0: Vector3<f32>, pos1: Vector3<f32>, pos2: Vector3<f32>) -> Vector3<f32> {
-    let avg_height = (pos0.y + pos1.y + pos2.y) / 3.0;
-    if avg_height < 0.3 {
-        // vec3(0.365, 0.702, 0.91)
-        vec3(0.612, 0.604, 0.584)
-    } else if avg_height < 1.5 {
-        vec3(0.831, 0.761, 0.325)
-    } else if avg_height < 3.5 {
-        vec3(0.086, 0.651, 0.357)
-    } else if avg_height < 9.5 {
-        vec3(0.459, 0.329, 0.082)
-    } else {
-        vec3(0.7, 0.8, 0.9)
-    }
-}*/
 
 pub struct TerrainChunk {
     mesh: Vec<[BasicVertexData; 3]>,

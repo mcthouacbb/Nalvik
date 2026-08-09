@@ -1,4 +1,4 @@
-use std::{f32, time::Duration};
+use std::f32;
 
 use cgmath::{
     InnerSpace, Matrix, Matrix3, Matrix4, Rad, SquareMatrix, Vector2, Vector3, Vector4,
@@ -110,7 +110,7 @@ impl Renderer {
     }
 }
 
-pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], time: Duration, camera: &Camera) {
+pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera) {
     let view_matrix = camera.view_matrix();
     let proj_matrix = PERSPECTIVE_CORRECTION
         * perspective(
