@@ -2,11 +2,13 @@ use cgmath::{Vector2, Vector4};
 
 use crate::image::{format::RgbaFormat, view::Image2dView};
 
+#[derive(Clone, Copy)]
 pub enum FilterMode {
     Nearest,
     Linear,
 }
 
+#[derive(Clone, Copy)]
 pub struct Sampler2d {
     filter: FilterMode,
 }
