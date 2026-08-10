@@ -29,10 +29,10 @@ pub fn clip_triangle<Vo: VertexToFragment>(
     debug_assert!(out_buf.len() == 0);
 
     let mut tmp_buf = ArrayVec::<VertexOutput<Vo>, BUF_SIZE>::new();
-    let mut front_buf = out_buf;
-    let mut back_buf = &mut tmp_buf;
+    let mut front_buf = &mut tmp_buf;
+    let mut back_buf = out_buf;
 
-    // z >= 0
+    // z >= 0 (near clip plane)
     clip_against_plane(v0, v1, v2, vec4(0.0, 0.0, 1.0, 0.0), front_buf);
     debug_assert!(front_buf.len() % 3 == 0);
 
@@ -48,6 +48,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
     let coeff_neg_y = -TWO_POW_17 / viewport_size.y as f32 + 1.0;
     let coeff_pos_y = TWO_POW_17 / viewport_size.y as f32 + 1.0;
 
+    // x >= C * w (guard band left clip plane)
     std::mem::swap(&mut front_buf, &mut back_buf);
     for vertices in back_buf.chunks_exact(3) {
         if outside_xy_clip_planes(&vertices[0], &vertices[1], &vertices[2]) {
@@ -63,6 +64,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
         );
     }
 
+    // x <= C * w (guard band right clip plane)
     std::mem::swap(&mut front_buf, &mut back_buf);
     front_buf.clear();
     for vertices in back_buf.chunks_exact(3) {
@@ -75,6 +77,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
         );
     }
 
+    // y >= C * w (guard band bottom clip plane)
     std::mem::swap(&mut front_buf, &mut back_buf);
     front_buf.clear();
     for vertices in back_buf.chunks_exact(3) {
@@ -87,6 +90,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
         );
     }
 
+    // y <= C * w (guard band top clip plane)
     std::mem::swap(&mut front_buf, &mut back_buf);
     front_buf.clear();
     for vertices in back_buf.chunks_exact(3) {
@@ -95,6 +99,19 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[1],
             &vertices[2],
             vec4(0.0, -1.0, 0.0, coeff_pos_y),
+            &mut front_buf,
+        );
+    }
+
+    // z <= w (far plane clipping)
+    std::mem::swap(&mut front_buf, &mut back_buf);
+    front_buf.clear();
+    for vertices in back_buf.chunks_exact(3) {
+        clip_against_plane(
+            &vertices[0],
+            &vertices[1],
+            &vertices[2],
+            vec4(0.0, 0.0, -1.0, 1.0),
             &mut front_buf,
         );
     }
