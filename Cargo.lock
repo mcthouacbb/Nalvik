@@ -1812,6 +1812,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "portal_renderer"
+version = "0.1.0"
+dependencies = [
+ "cgmath",
+ "pixels",
+ "rasterizer",
+ "winit",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"

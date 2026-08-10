@@ -5,6 +5,7 @@ members = [
     "crates/macros",
     "examples/height_map_terrain",
     "examples/model_loader",
+    "examples/portal_renderer",
 ]
 
 [workspace.dependencies]

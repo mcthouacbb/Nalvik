@@ -168,7 +168,7 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera)
                 &tri[0],
                 &tri[1],
                 &tri[2],
-                [0, 0 + idx as u32, 0, 0],
+                [0, idx as u32, 0, 0],
             )
         }
     }

@@ -13,7 +13,6 @@ use winit::{
 
 use crate::{
     camera::Camera,
-    models::ModelPath,
     render::{Renderer, render},
 };
 
@@ -30,11 +29,10 @@ pub struct App<'a> {
     pressed_keys: HashSet<KeyCode>,
     camera: Camera,
     cursor_locked: bool,
-    model_path: ModelPath,
 }
 
 impl<'a> App<'a> {
-    pub fn new(model_path: ModelPath) -> Self {
+    pub fn new() -> Self {
         let time = Instant::now();
         Self {
             window: None,
@@ -48,7 +46,6 @@ impl<'a> App<'a> {
             pressed_keys: HashSet::new(),
             camera: Camera::new(vec3(0.0, 0.0, 0.0), vec2(0.0, 0.0)),
             cursor_locked: false,
-            model_path,
         }
     }
 
@@ -119,7 +116,7 @@ impl<'a> ApplicationHandler for App<'a> {
         }
 
         if self.renderer.is_none() {
-            self.renderer = Some(Renderer::new(size, &self.model_path));
+            self.renderer = Some(Renderer::new(size));
         } else {
             self.renderer_mut().resize(size);
         }
