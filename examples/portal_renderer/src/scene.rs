@@ -238,10 +238,31 @@ pub fn scene(viewport_size: Vector2<i32>) -> Scene {
         Material::MATERIAL1,
     );
 
+    let box14 = rectangular_prism(
+        vec3(13.3, -1.0, 5.0),
+        vec3(0.0, 0.7, 0.0),
+        vec3(1.0, 1.0, 1.0),
+        Material::MATERIAL1,
+    );
+
+    let box15 = rectangular_prism(
+        vec3(11.9, -1.0, 6.0),
+        vec3(0.0, -0.4, 0.0),
+        vec3(1.0, 1.0, 1.0),
+        Material::MATERIAL1,
+    );
+
+    let box16 = rectangular_prism(
+        vec3(11.1, -1.0, 4.0),
+        vec3(0.0, -0.8, 0.0),
+        vec3(1.0, 1.0, 1.0),
+        Material::MATERIAL1,
+    );
+
     Scene {
         objects: vec![
             room, box1, box2, box3, box4, box5, box6, box7, box8, box9, box10, floor, box11, box12,
-            box13,
+            box13, box14, box15, box16,
         ],
         portal0: portal_surface(viewport_size, Vector3::zero(), vec2(5.0, 5.0)),
         portal1: portal_surface(viewport_size, vec3(12.0, 1.5, 0.0), vec2(5.0, 5.0)),
