@@ -10,7 +10,10 @@ use nalvik::{
 };
 use winit::dpi::PhysicalSize;
 
-use crate::{camera::Camera, terrain::manager::ChunkManager};
+use crate::{
+    camera::Camera,
+    terrain::manager::{CHUNK_SIZE, ChunkManager},
+};
 
 #[derive(Clone, Copy)]
 pub struct BasicVertexData {
@@ -88,7 +91,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(viewport_size: PhysicalSize<u32>) -> Self {
+    pub fn new(viewport_size: PhysicalSize<u32>, render_distance: u32) -> Self {
         Self {
             depth_buffer: Image2d::new(
                 DepthF32::new(1.0),
@@ -96,7 +99,7 @@ impl Renderer {
                 viewport_size.height,
             ),
             size: vec2(viewport_size.width as i32, viewport_size.height as i32),
-            chunk_manager: ChunkManager::new(),
+            chunk_manager: ChunkManager::new(render_distance),
         }
     }
 
@@ -116,8 +119,10 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera)
         * perspective(
             Rad(f32::consts::PI / 3.0),
             renderer.aspect_ratio(),
-            0.1,
-            200.0,
+            0.25,
+            renderer.chunk_manager.render_distance() as f32
+                * CHUNK_SIZE.cast::<f32>().unwrap().magnitude()
+                + 10.0,
         );
 
     renderer.chunk_manager.update_chunks(camera.position.xz());

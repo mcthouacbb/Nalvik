@@ -29,10 +29,12 @@ pub struct App<'a> {
     pressed_keys: HashSet<KeyCode>,
     camera: Camera,
     cursor_locked: bool,
+    render_distance: u32,
+    speed: f32,
 }
 
 impl<'a> App<'a> {
-    pub fn new() -> Self {
+    pub fn new(render_distance: u32, speed: f32) -> Self {
         let time = Instant::now();
         Self {
             window: None,
@@ -46,6 +48,8 @@ impl<'a> App<'a> {
             pressed_keys: HashSet::new(),
             camera: Camera::new(vec3(0.0, 0.0, 0.0), vec2(0.0, 0.0)),
             cursor_locked: false,
+            render_distance,
+            speed,
         }
     }
 
@@ -112,7 +116,7 @@ impl<'a> ApplicationHandler for App<'a> {
         }
 
         if self.renderer.is_none() {
-            self.renderer = Some(Renderer::new(size));
+            self.renderer = Some(Renderer::new(size, self.render_distance));
         } else {
             self.renderer_mut().resize(size);
         }
@@ -163,41 +167,39 @@ impl<'a> ApplicationHandler for App<'a> {
                         println!("FPS: {}", (10.0 / self.avg_dt).round() / 10.0);
                     }
 
-                    const SPEED: f32 = 12.0;
-
                     if self.is_key_pressed(KeyCode::KeyE) {
-                        self.camera.position.y += SPEED * dt.as_secs_f32();
+                        self.camera.position.y += self.speed * dt.as_secs_f32();
                     }
                     if self.is_key_pressed(KeyCode::KeyQ) {
-                        self.camera.position.y -= SPEED * dt.as_secs_f32();
+                        self.camera.position.y -= self.speed * dt.as_secs_f32();
                     }
 
                     if self.is_key_pressed(KeyCode::KeyW) {
                         self.camera.position.z -=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.cos();
                         self.camera.position.x -=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.sin();
                     }
 
                     if self.is_key_pressed(KeyCode::KeyS) {
                         self.camera.position.z +=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.cos();
                         self.camera.position.x +=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.sin();
                     }
 
                     if self.is_key_pressed(KeyCode::KeyD) {
                         self.camera.position.z -=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.sin();
                         self.camera.position.x +=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.cos();
                     }
 
                     if self.is_key_pressed(KeyCode::KeyA) {
                         self.camera.position.z +=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.sin();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.sin();
                         self.camera.position.x -=
-                            SPEED * dt.as_secs_f32() * self.camera.rotation.y.cos();
+                            self.speed * dt.as_secs_f32() * self.camera.rotation.y.cos();
                     }
 
                     render(
