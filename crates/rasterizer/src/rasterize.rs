@@ -30,7 +30,7 @@ struct EdgeFn {
 
 impl EdgeFn {
     fn from_edge(v0: Vector2<i32>, v1: Vector2<i32>) -> Self {
-        let top_left = v1.x - v0.x > 0 || (v1.x - v0.x == 0 && v1.y - v0.y > 0);
+        let top_left = v1.y - v0.y < 0 || (v1.y - v0.y == 0 && v1.x - v0.x < 0);
 
         let dx = (v1.y - v0.y) as i64;
         let dy = (v0.x - v1.x) as i64;
@@ -39,7 +39,7 @@ impl EdgeFn {
          * a slight error for barycentric coordinates, but it is extraordinarily tiny
          * with 8 bits of subpixel precision
          */
-        let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64 - top_left as i64;
+        let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64 - !top_left as i64;
         Self { dx, dy, c }
     }
 
