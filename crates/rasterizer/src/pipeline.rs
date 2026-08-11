@@ -1,6 +1,8 @@
 use arrayvec::ArrayVec;
 use cgmath::{Vector2, Vector3, Vector4, vec2};
-use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 
 use crate::{
     clip,
@@ -11,7 +13,7 @@ use crate::{
     pipeline::{
         depth_state::{DepthState, DepthTest},
         fragment::FragmentShader,
-        render_pass::{RenderPass, TriangleData},
+        render_pass::{RenderPass, TRI_BUF_CHUNK_SIZE, TriangleData},
         tile::TileMut,
         vertex::VertexShader,
         vertex_to_fragment::VertexToFragment,
@@ -78,63 +80,24 @@ impl<
         &self,
         viewport_size: Vector2<i32>,
         uniforms: Uniforms<'a, U0, U1, U2, U3>,
-    ) -> RenderPass<'a, Vo, U0, U1, U2, U3> {
+    ) -> RenderPass<'a, Vi, Vo, U0, U1, U2, U3> {
         RenderPass::new(viewport_size, uniforms)
     }
 
-    pub fn add_triangle(
+    pub fn add_triangle<'a>(
         &self,
-        render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
-        vi0: &Vi,
-        vi1: &Vi,
-        vi2: &Vi,
+        render_pass: &mut RenderPass<'a, Vi, Vo, U0, U1, U2, U3>,
+        vi0: &'a Vi,
+        vi1: &'a Vi,
+        vi2: &'a Vi,
         uniform_indices: [u32; 4],
     ) {
-        let vo0 = self
-            .vertex
-            .run(vi0, render_pass.uniforms().get(uniform_indices));
-        let vo1 = self
-            .vertex
-            .run(vi1, render_pass.uniforms().get(uniform_indices));
-        let vo2 = self
-            .vertex
-            .run(vi2, render_pass.uniforms().get(uniform_indices));
-
-        let mut out_buf = ArrayVec::<VertexOutput<Vo>, { clip::BUF_SIZE }>::new();
-        clip::clip_triangle(&vo0, &vo1, &vo2, &mut out_buf, render_pass.viewport_size());
-
-        for vertices in out_buf.chunks_exact_mut(3) {
-            let inv_w0 = 1.0 / vertices[0].position.w;
-            let inv_w1 = 1.0 / vertices[1].position.w;
-            let inv_w2 = 1.0 / vertices[2].position.w;
-
-            let v0 = vertices[0].position * inv_w0;
-            let v1 = vertices[1].position * inv_w1;
-            let v2 = vertices[2].position * inv_w2;
-
-            vertices[0].data.scale_w(inv_w0);
-            vertices[1].data.scale_w(inv_w1);
-            vertices[2].data.scale_w(inv_w2);
-
-            add_triangle_to_pass(
-                &v0,
-                &v1,
-                &v2,
-                inv_w0,
-                inv_w1,
-                inv_w2,
-                vertices[0].data,
-                vertices[1].data,
-                vertices[2].data,
-                uniform_indices,
-                render_pass,
-            );
-        }
+        render_pass.add_raw_triangle(vi0, vi1, vi2, uniform_indices);
     }
 
     pub fn run<'a, T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
         &self,
-        render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
+        render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
         color_buffer: &mut Image2dViewMut<'a, T>,
         depth_state: &mut DepthState<'a, D>,
     ) {
@@ -142,6 +105,8 @@ impl<
             render_pass.viewport_size()
                 == vec2(color_buffer.width() as i32, color_buffer.height() as i32)
         );
+
+        self.assemble_triangles(render_pass);
 
         match depth_state {
             DepthState::CompareOnly(_, _) => unimplemented!(),
@@ -157,9 +122,81 @@ impl<
         }
     }
 
+    pub fn assemble_triangles<'a>(&self, render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>) {
+        let raw_tris = render_pass.raw_triangles();
+
+        let mut assembled_tris = vec![Vec::new(); raw_tris.chunks().len()];
+
+        render_pass
+            .raw_triangles()
+            .chunks()
+            .par_iter()
+            .zip(assembled_tris.par_iter_mut())
+            .for_each(|(chunk, assembled_tris_buf)| {
+                // reserve 20% extra space in case a lot of triangles get clipped
+                assembled_tris_buf.reserve(TRI_BUF_CHUNK_SIZE * 6 / 5);
+
+                for &(vi0, vi1, vi2, uniform_indices) in chunk.iter() {
+                    let vo0 = self
+                        .vertex
+                        .run(vi0, render_pass.uniforms().get(uniform_indices));
+                    let vo1 = self
+                        .vertex
+                        .run(vi1, render_pass.uniforms().get(uniform_indices));
+                    let vo2 = self
+                        .vertex
+                        .run(vi2, render_pass.uniforms().get(uniform_indices));
+
+                    let mut out_buf = ArrayVec::<VertexOutput<Vo>, { clip::BUF_SIZE }>::new();
+                    clip::clip_triangle(
+                        &vo0,
+                        &vo1,
+                        &vo2,
+                        &mut out_buf,
+                        render_pass.viewport_size(),
+                    );
+
+                    for vertices in out_buf.chunks_exact(3) {
+                        assembled_tris_buf
+                            .push(([vertices[0], vertices[1], vertices[2]], uniform_indices));
+                    }
+                }
+            });
+
+        for chunk in &mut assembled_tris {
+            for (vertices, uniform_indices) in chunk {
+                let inv_w0 = 1.0 / vertices[0].position.w;
+                let inv_w1 = 1.0 / vertices[1].position.w;
+                let inv_w2 = 1.0 / vertices[2].position.w;
+
+                let v0 = vertices[0].position * inv_w0;
+                let v1 = vertices[1].position * inv_w1;
+                let v2 = vertices[2].position * inv_w2;
+
+                vertices[0].data.scale_w(inv_w0);
+                vertices[1].data.scale_w(inv_w1);
+                vertices[2].data.scale_w(inv_w2);
+
+                add_triangle_to_pass(
+                    &v0,
+                    &v1,
+                    &v2,
+                    inv_w0,
+                    inv_w1,
+                    inv_w2,
+                    vertices[0].data,
+                    vertices[1].data,
+                    vertices[2].data,
+                    *uniform_indices,
+                    render_pass,
+                );
+            }
+        }
+    }
+
     fn run_with_depth_compare_and_write<T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
         &self,
-        render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
+        render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
         color_buffer: &mut Image2dViewMut<T>,
         depth_buffer: &mut Image2dViewMut<D>,
         depth_test: DepthTest,

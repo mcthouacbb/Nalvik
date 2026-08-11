@@ -58,6 +58,7 @@ pub struct RasterizationInfo {
 }
 
 pub fn add_triangle_to_pass<
+    Vi: Sync,
     Vo: VertexToFragment,
     U0: Uniform,
     U1: Uniform,
@@ -74,7 +75,7 @@ pub fn add_triangle_to_pass<
     vo1: Vo,
     vo2: Vo,
     uniform_indices: [u32; 4],
-    render_pass: &mut RenderPass<Vo, U0, U1, U2, U3>,
+    render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
 ) {
     let v0 = to_viewport(ndc0.xy(), render_pass.viewport_size());
     let v1 = to_viewport(ndc1.xy(), render_pass.viewport_size());
@@ -129,9 +130,16 @@ pub fn add_triangle_to_pass<
     }
 }
 
-pub fn rasterize_tile<Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Uniform, U3: Uniform>(
+pub fn rasterize_tile<
+    Vi: Sync,
+    Vo: VertexToFragment,
+    U0: Uniform,
+    U1: Uniform,
+    U2: Uniform,
+    U3: Uniform,
+>(
     tile: Vector2<i32>,
-    render_pass: &RenderPass<Vo, U0, U1, U2, U3>,
+    render_pass: &RenderPass<Vi, Vo, U0, U1, U2, U3>,
     mut pixel_fn: impl FnMut(u32, u32, Vector3<f32>, &TriangleData<Vo>),
 ) {
     for tri in render_pass.tile_tri_indices(tile) {
@@ -158,7 +166,7 @@ pub fn rasterize_tile<Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Unifor
             while x < max_x {
                 debug_assert!(x % ONE == HALF);
 
-                if e0 >= 0 && e1 >= 0 && e2 >= 0 {
+                if (e0 | e1 | e2) >= 0 {
                     let barycentric = vec3(
                         (e0 + raster_info.edge_fns[0].not_top_left) as f32 * raster_info.norms[0],
                         (e1 + raster_info.edge_fns[1].not_top_left) as f32 * raster_info.norms[1],

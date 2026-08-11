@@ -1,5 +1,5 @@
 use arrayvec::ArrayVec;
-use cgmath::{Vector2, Vector4, prelude::*, vec4};
+use cgmath::{Vector2, Vector4};
 
 use crate::pipeline::{VertexOutput, vertex_to_fragment::VertexToFragment};
 
@@ -33,7 +33,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
     let mut back_buf = out_buf;
 
     // z >= 0 (near clip plane)
-    clip_against_plane(v0, v1, v2, vec4(0.0, 0.0, 1.0, 0.0), front_buf);
+    clip_against_plane(v0, v1, v2, |pos| pos.z, front_buf);
     debug_assert!(front_buf.len() % 3 == 0);
 
     if front_buf.len() == 0 {
@@ -59,7 +59,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            vec4(1.0, 0.0, 0.0, -coeff_neg_x),
+            |pos| pos.x - coeff_neg_x * pos.w,
             front_buf,
         );
     }
@@ -72,7 +72,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            vec4(-1.0, 0.0, 0.0, coeff_pos_x),
+            |pos| coeff_pos_x * pos.w - pos.x,
             &mut front_buf,
         );
     }
@@ -85,7 +85,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            vec4(0.0, 1.0, 0.0, -coeff_neg_y),
+            |pos| pos.y - coeff_neg_y * pos.w,
             &mut front_buf,
         );
     }
@@ -98,7 +98,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            vec4(0.0, -1.0, 0.0, coeff_pos_y),
+            |pos| coeff_pos_y * pos.w - pos.y,
             &mut front_buf,
         );
     }
@@ -111,7 +111,7 @@ pub fn clip_triangle<Vo: VertexToFragment>(
             &vertices[0],
             &vertices[1],
             &vertices[2],
-            vec4(0.0, 0.0, -1.0, 1.0),
+            |pos| pos.w - pos.z,
             &mut front_buf,
         );
     }
@@ -158,13 +158,13 @@ pub fn clip_against_plane<Vo: VertexToFragment>(
     v0: &VertexOutput<Vo>,
     v1: &VertexOutput<Vo>,
     v2: &VertexOutput<Vo>,
-    plane: Vector4<f32>,
+    plane_residual: impl Fn(&Vector4<f32>) -> f32,
     out_buf: &mut ArrayVec<VertexOutput<Vo>, BUF_SIZE>,
 ) {
     // clip the triangle to ensure dot(plane, p) >= 0 for all points on the output triangle(s)
-    let res0 = v0.position.dot(plane);
-    let res1 = v1.position.dot(plane);
-    let res2 = v2.position.dot(plane);
+    let res0 = plane_residual(&v0.position);
+    let res1 = plane_residual(&v1.position);
+    let res2 = plane_residual(&v2.position);
 
     let outside = (res0 < 0.0) as i32 + (res1 < 0.0) as i32 + (res2 < 0.0) as i32;
     match outside {

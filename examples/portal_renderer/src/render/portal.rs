@@ -184,7 +184,7 @@ pub fn render_portal_surface<'a>(
 
     let mut render_pass = pipeline.begin_render_pass(viewport_size, uniforms);
 
-    for tri in surface {
+    for tri in &surface {
         pipeline.add_triangle(&mut render_pass, &tri[0], &tri[1], &tri[2], [0, 0, 0, 0]);
     }
 
