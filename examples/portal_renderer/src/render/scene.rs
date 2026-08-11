@@ -129,6 +129,6 @@ pub fn render_scene_objects<'a>(
         &mut render_pass,
         &mut color_buffer,
         &mut DepthState::CompareAndWrite(depth_buffer, DepthTest::Less),
-        CullMode::OnlyRenderCCW,
+        CullMode::RenderOnlyCCW,
     );
 }

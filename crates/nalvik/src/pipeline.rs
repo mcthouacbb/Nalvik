@@ -46,8 +46,8 @@ impl<O: VertexToFragment> VertexOutput<O> {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum CullMode {
-    OnlyRenderCCW,
-    OnlyRenderCW,
+    RenderOnlyCCW,
+    RenderOnlyCW,
     RenderAll,
 }
 
@@ -196,7 +196,7 @@ impl<
                 vertices[2].data.scale_w(inv_w2);
 
                 let ccw = is_triangle_ccw(v0.xy(), v1.xy(), v2.xy());
-                if ccw && (cull_mode == CullMode::OnlyRenderCCW || cull_mode == CullMode::RenderAll)
+                if ccw && (cull_mode == CullMode::RenderOnlyCCW || cull_mode == CullMode::RenderAll)
                 {
                     add_triangle_to_pass(
                         &v0,
@@ -212,7 +212,7 @@ impl<
                         render_pass,
                     );
                 }
-                if !ccw && (cull_mode == CullMode::OnlyRenderCW || cull_mode == CullMode::RenderAll)
+                if !ccw && (cull_mode == CullMode::RenderOnlyCW || cull_mode == CullMode::RenderAll)
                 {
                     add_triangle_to_pass(
                         &v0,

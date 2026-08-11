@@ -57,6 +57,11 @@ pub struct RasterizationInfo {
     norms: [f32; 3],
 }
 
+/*
+ * Triangle rasterization must be done on CCW winding order triangles
+ * If the culling mode is not CullMode::RenderOnlyCCW, then the triangles
+ * must have its winding order changed before rasterization
+ */
 pub fn add_triangle_to_pass<
     Vi: Sync,
     Vo: VertexToFragment,

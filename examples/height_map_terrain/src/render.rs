@@ -188,6 +188,6 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera)
         &mut render_pass,
         &mut framebuffer,
         &mut depth_state,
-        CullMode::OnlyRenderCCW,
+        CullMode::RenderOnlyCCW,
     );
 }
