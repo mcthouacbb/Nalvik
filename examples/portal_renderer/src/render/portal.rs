@@ -1,9 +1,9 @@
 use std::f32;
 
-use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*, vec2, vec3, vec4};
-use rasterizer::{
-    DepthState, DepthTest, FilterMode, Image2dView, Image2dViewMut, PERSPECTIVE_CORRECTION,
-    Pipeline, Sampler2d, Uniforms, VertexOutput, VertexToFragment,
+use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, prelude::*, vec2, vec3, vec4};
+use nalvik::{
+    DepthState, DepthTest, FilterMode, Image2dView, Image2dViewMut, Pipeline, Sampler2d, Uniforms,
+    VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,
 };

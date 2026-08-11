@@ -3,7 +3,7 @@ use std::f32;
 use cgmath::{
     Matrix3, Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*, vec2, vec3,
 };
-use rasterizer::{
+use nalvik::{
     DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut,
     PERSPECTIVE_CORRECTION, Pipeline, Sampler2d, Uniforms, VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},

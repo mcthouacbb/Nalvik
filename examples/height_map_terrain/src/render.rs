@@ -4,7 +4,7 @@ use cgmath::{
     InnerSpace, Matrix, Matrix3, Matrix4, Rad, SquareMatrix, Vector2, Vector3, Vector4,
     perspective, vec2, vec3,
 };
-use rasterizer::{
+use nalvik::{
     DepthState, DepthTest, Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION, Pipeline, Uniforms,
     VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
 };

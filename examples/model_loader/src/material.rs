@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use cgmath::{Vector4, vec4};
-use rasterizer::{
+use nalvik::{
     Image2d, ImageLoadError,
     format::{RgbaF32, RgbaU8},
 };

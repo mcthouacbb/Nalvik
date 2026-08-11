@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/rasterizer",
     "crates/macros",
+    "crates/nalvik",
     "examples/height_map_terrain",
     "examples/model_loader",
     "examples/portal_renderer",

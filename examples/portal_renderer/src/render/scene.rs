@@ -1,5 +1,5 @@
 use cgmath::{Matrix3, Matrix4, Vector2, Vector3, Vector4, prelude::*, vec3};
-use rasterizer::{
+use nalvik::{
     DepthState, DepthTest, Image2dViewMut, Pipeline, Uniforms, VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,

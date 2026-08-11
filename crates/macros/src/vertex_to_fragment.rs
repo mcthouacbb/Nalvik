@@ -6,7 +6,7 @@ use syn::{Data, DeriveInput, Fields, Ident, parse_macro_input};
 pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
-    let crate_name = match crate_name("rasterizer") {
+    let crate_name = match crate_name("nalvik") {
         Ok(FoundCrate::Itself) => quote!(crate),
         Ok(FoundCrate::Name(name)) => {
             let name = syn::Ident::new(name.as_str(), proc_macro2::Span::call_site());
@@ -14,7 +14,7 @@ pub fn vertex_to_fragment_derive_impl(input: TokenStream) -> TokenStream {
         }
         Err(_) => {
             return quote! {
-                compile_error!("Could not find dependency rasterizer.")
+                compile_error!("Could not find dependency nalvik.")
             }
             .into();
         }

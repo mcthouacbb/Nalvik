@@ -1,5 +1,5 @@
 use cgmath::{Matrix4, Rad, Vector2, Vector3, prelude::*, vec2, vec3, vec4};
-use rasterizer::{
+use nalvik::{
     Image2d,
     format::{DepthF32, RgbaU8},
 };

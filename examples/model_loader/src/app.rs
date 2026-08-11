@@ -64,10 +64,6 @@ impl<'a> App<'a> {
         self.pixels.as_mut().unwrap()
     }
 
-    fn renderer(&self) -> &Renderer {
-        self.renderer.as_ref().unwrap()
-    }
-
     fn renderer_mut(&mut self) -> &mut Renderer {
         self.renderer.as_mut().unwrap()
     }

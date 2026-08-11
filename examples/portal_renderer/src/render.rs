@@ -4,7 +4,7 @@ mod scene;
 use std::f32;
 
 use cgmath::{Rad, Vector2, Vector3, perspective, vec2, vec4};
-use rasterizer::{
+use nalvik::{
     Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION,
     format::{DepthF32, RgbaU8},
 };
