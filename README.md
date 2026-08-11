@@ -25,8 +25,8 @@ A software rasterizer written in rust.
 
 Examples use [winit](https://docs.rs/winit/0.30.13/winit/) and [pixels](https://docs.rs/pixels/0.17.2/pixels/)
 
-- height_map_terrain
-- model_loader
-- portal_renderer
+- [Height Map Terrain](https://github.com/mcthouacbb/Nalvik/tree/main/examples/height_map_terrain)
+- [Obj Model Loader](https://github.com/mcthouacbb/Nalvik/tree/main/examples/model_loader)
+- [Portal Renderer](https://github.com/mcthouacbb/Nalvik/tree/main/examples/portal_renderer)
 
 The name is based on reversing "vulkan" -> "nakluv"
