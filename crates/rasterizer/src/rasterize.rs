@@ -26,21 +26,22 @@ struct EdgeFn {
     pub dx: i64,
     pub dy: i64,
     pub c: i64,
+    pub not_top_left: i64,
 }
 
 impl EdgeFn {
     fn from_edge(v0: Vector2<i32>, v1: Vector2<i32>) -> Self {
-        let top_left = v1.y - v0.y < 0 || (v1.y - v0.y == 0 && v1.x - v0.x < 0);
+        let not_top_left = (v1.y - v0.y < 0 || (v1.y - v0.y == 0 && v1.x - v0.x < 0)) as i64;
 
         let dx = (v1.y - v0.y) as i64;
         let dy = (v0.x - v1.x) as i64;
-        /*
-         * note: biasing by 1 for top left rule technically introduces
-         * a slight error for barycentric coordinates, but it is extraordinarily tiny
-         * with 8 bits of subpixel precision
-         */
-        let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64 - !top_left as i64;
-        Self { dx, dy, c }
+        let c = -v0.x as i64 * dx as i64 - v0.y as i64 * dy as i64 - not_top_left;
+        Self {
+            dx,
+            dy,
+            c,
+            not_top_left,
+        }
     }
 
     fn evaluate(&self, pos: Vector2<i32>) -> i64 {
@@ -83,9 +84,9 @@ pub fn add_triangle_to_pass<
     let edge1 = EdgeFn::from_edge(v2, v0);
     let edge2 = EdgeFn::from_edge(v0, v1);
 
-    let norm0 = 1.0 / edge0.evaluate(v0) as f32;
-    let norm1 = 1.0 / edge1.evaluate(v1) as f32;
-    let norm2 = 1.0 / edge2.evaluate(v2) as f32;
+    let norm0 = 1.0 / (edge0.evaluate(v0) + edge0.not_top_left) as f32;
+    let norm1 = 1.0 / (edge1.evaluate(v1) + edge1.not_top_left) as f32;
+    let norm2 = 1.0 / (edge2.evaluate(v2) + edge2.not_top_left) as f32;
 
     let triangle_id = render_pass.add_triangle(
         RasterizationInfo {
@@ -159,9 +160,9 @@ pub fn rasterize_tile<Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Unifor
 
                 if e0 >= 0 && e1 >= 0 && e2 >= 0 {
                     let barycentric = vec3(
-                        e0 as f32 * raster_info.norms[0],
-                        e1 as f32 * raster_info.norms[1],
-                        e2 as f32 * raster_info.norms[2],
+                        (e0 + raster_info.edge_fns[0].not_top_left) as f32 * raster_info.norms[0],
+                        (e1 + raster_info.edge_fns[1].not_top_left) as f32 * raster_info.norms[1],
+                        (e2 + raster_info.edge_fns[2].not_top_left) as f32 * raster_info.norms[2],
                     );
                     pixel_fn(
                         (x / ONE) as u32,
