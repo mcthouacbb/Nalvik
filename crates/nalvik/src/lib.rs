@@ -13,7 +13,7 @@ pub use image::{
 };
 pub use macros::VertexToFragment;
 pub use pipeline::{
-    Pipeline, VertexOutput,
+    CullMode, Pipeline, VertexOutput,
     depth_state::{DepthState, DepthTest},
     render_pass::RenderPass,
     vertex_to_fragment::VertexToFragment,

@@ -2,8 +2,8 @@ use std::f32;
 
 use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, prelude::*, vec2, vec3, vec4};
 use nalvik::{
-    DepthState, DepthTest, FilterMode, Image2dView, Image2dViewMut, Pipeline, Sampler2d, Uniforms,
-    VertexOutput, VertexToFragment,
+    CullMode, DepthState, DepthTest, FilterMode, Image2dView, Image2dViewMut, Pipeline, Sampler2d,
+    Uniforms, VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,
 };
@@ -143,7 +143,6 @@ pub fn render_portal_surface<'a>(
     viewport_size: Vector2<i32>,
 ) {
     let surface = [
-        // +z face
         [
             PortalVertex::new(vec3(-0.5, -0.5, 0.0)),
             PortalVertex::new(vec3(0.5, -0.5, 0.0)),
@@ -153,17 +152,6 @@ pub fn render_portal_surface<'a>(
             PortalVertex::new(vec3(0.5, 0.5, 0.0)),
             PortalVertex::new(vec3(-0.5, 0.5, 0.0)),
             PortalVertex::new(vec3(-0.5, -0.5, 0.0)),
-        ],
-        // -z face
-        [
-            PortalVertex::new(vec3(0.5, -0.5, 0.0)),
-            PortalVertex::new(vec3(-0.5, -0.5, 0.0)),
-            PortalVertex::new(vec3(-0.5, 0.5, 0.0)),
-        ],
-        [
-            PortalVertex::new(vec3(-0.5, 0.5, 0.0)),
-            PortalVertex::new(vec3(0.5, 0.5, 0.0)),
-            PortalVertex::new(vec3(0.5, -0.5, 0.0)),
         ],
     ];
 
@@ -192,5 +180,6 @@ pub fn render_portal_surface<'a>(
         &mut render_pass,
         &mut color_buffer,
         &mut DepthState::CompareAndWrite(depth_buffer, DepthTest::Less),
+        CullMode::RenderAll,
     );
 }

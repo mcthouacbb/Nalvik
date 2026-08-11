@@ -44,6 +44,19 @@ impl<O: VertexToFragment> VertexOutput<O> {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum CullMode {
+    OnlyRenderCCW,
+    OnlyRenderCW,
+    RenderAll,
+}
+
+pub fn is_triangle_ccw(ndc0: Vector2<f32>, ndc1: Vector2<f32>, ndc2: Vector2<f32>) -> bool {
+    let edge01 = ndc1 - ndc0;
+    let edge02 = ndc2 - ndc0;
+    edge01.x * edge02.y - edge02.x * edge01.y > 0.0
+}
+
 pub struct Pipeline<
     Vi,
     Vo: VertexToFragment,
@@ -100,13 +113,14 @@ impl<
         render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
         color_buffer: &mut Image2dViewMut<'a, T>,
         depth_state: &mut DepthState<'a, D>,
+        cull_mode: CullMode,
     ) {
         assert!(
             render_pass.viewport_size()
                 == vec2(color_buffer.width() as i32, color_buffer.height() as i32)
         );
 
-        self.assemble_triangles(render_pass);
+        self.assemble_triangles(render_pass, cull_mode);
 
         match depth_state {
             DepthState::CompareOnly(_, _) => unimplemented!(),
@@ -122,7 +136,11 @@ impl<
         }
     }
 
-    pub fn assemble_triangles<'a>(&self, render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>) {
+    pub fn assemble_triangles<'a>(
+        &self,
+        render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
+        cull_mode: CullMode,
+    ) {
         let raw_tris = render_pass.raw_triangles();
 
         let mut assembled_tris = vec![Vec::new(); raw_tris.chunks().len()];
@@ -177,19 +195,39 @@ impl<
                 vertices[1].data.scale_w(inv_w1);
                 vertices[2].data.scale_w(inv_w2);
 
-                add_triangle_to_pass(
-                    &v0,
-                    &v1,
-                    &v2,
-                    inv_w0,
-                    inv_w1,
-                    inv_w2,
-                    vertices[0].data,
-                    vertices[1].data,
-                    vertices[2].data,
-                    *uniform_indices,
-                    render_pass,
-                );
+                let ccw = is_triangle_ccw(v0.xy(), v1.xy(), v2.xy());
+                if ccw && (cull_mode == CullMode::OnlyRenderCCW || cull_mode == CullMode::RenderAll)
+                {
+                    add_triangle_to_pass(
+                        &v0,
+                        &v1,
+                        &v2,
+                        inv_w0,
+                        inv_w1,
+                        inv_w2,
+                        vertices[0].data,
+                        vertices[1].data,
+                        vertices[2].data,
+                        *uniform_indices,
+                        render_pass,
+                    );
+                }
+                if !ccw && (cull_mode == CullMode::OnlyRenderCW || cull_mode == CullMode::RenderAll)
+                {
+                    add_triangle_to_pass(
+                        &v0,
+                        &v2,
+                        &v1,
+                        inv_w0,
+                        inv_w2,
+                        inv_w1,
+                        vertices[0].data,
+                        vertices[2].data,
+                        vertices[1].data,
+                        *uniform_indices,
+                        render_pass,
+                    );
+                }
             }
         }
     }

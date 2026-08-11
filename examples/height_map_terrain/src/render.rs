@@ -5,8 +5,8 @@ use cgmath::{
     perspective, vec2, vec3,
 };
 use nalvik::{
-    DepthState, DepthTest, Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION, Pipeline, Uniforms,
-    VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
+    CullMode, DepthState, DepthTest, Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION, Pipeline,
+    Uniforms, VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
 };
 use winit::dpi::PhysicalSize;
 
@@ -184,5 +184,10 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera)
         }
     }
 
-    pipeline.run(&mut render_pass, &mut framebuffer, &mut depth_state);
+    pipeline.run(
+        &mut render_pass,
+        &mut framebuffer,
+        &mut depth_state,
+        CullMode::OnlyRenderCCW,
+    );
 }

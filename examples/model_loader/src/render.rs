@@ -4,7 +4,7 @@ use cgmath::{
     Matrix3, Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*, vec2, vec3,
 };
 use nalvik::{
-    DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut,
+    CullMode, DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut,
     PERSPECTIVE_CORRECTION, Pipeline, Sampler2d, Uniforms, VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,
@@ -173,5 +173,10 @@ pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera)
         }
     }
 
-    pipeline.run(&mut render_pass, &mut framebuffer, &mut depth_state);
+    pipeline.run(
+        &mut render_pass,
+        &mut framebuffer,
+        &mut depth_state,
+        CullMode::OnlyRenderCCW,
+    );
 }

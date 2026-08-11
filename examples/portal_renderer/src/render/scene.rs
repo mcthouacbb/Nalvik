@@ -1,6 +1,7 @@
 use cgmath::{Matrix3, Matrix4, Vector2, Vector3, Vector4, prelude::*, vec3};
 use nalvik::{
-    DepthState, DepthTest, Image2dViewMut, Pipeline, Uniforms, VertexOutput, VertexToFragment,
+    CullMode, DepthState, DepthTest, Image2dViewMut, Pipeline, Uniforms, VertexOutput,
+    VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,
 };
@@ -128,5 +129,6 @@ pub fn render_scene_objects<'a>(
         &mut render_pass,
         &mut color_buffer,
         &mut DepthState::CompareAndWrite(depth_buffer, DepthTest::Less),
+        CullMode::OnlyRenderCCW,
     );
 }
