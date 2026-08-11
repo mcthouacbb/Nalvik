@@ -20,6 +20,9 @@ pub struct TriangleData<Vo: VertexToFragment> {
 
 pub const TRI_BUF_CHUNK_SIZE: usize = 1024;
 
+/*
+ * You should never call any functions on RenderPass directly
+ */
 pub struct RenderPass<
     'a,
     Vi: Sync,
