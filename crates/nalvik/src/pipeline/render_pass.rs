@@ -45,7 +45,7 @@ pub struct RenderPass<
 impl<'a, Vi: Sync, Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Uniform, U3: Uniform>
     RenderPass<'a, Vi, Vo, U0, U1, U2, U3>
 {
-    pub fn new(viewport_size: Vector2<i32>, uniforms: Uniforms<'a, U0, U1, U2, U3>) -> Self {
+    pub(crate) fn new(viewport_size: Vector2<i32>, uniforms: Uniforms<'a, U0, U1, U2, U3>) -> Self {
         let num_tiles_x = (viewport_size.x + TILE_SIZE - 1) / TILE_SIZE;
         let num_tiles_y = (viewport_size.y + TILE_SIZE - 1) / TILE_SIZE;
         let mut tiles = Vec::with_capacity((num_tiles_x * num_tiles_y) as usize);
@@ -64,31 +64,31 @@ impl<'a, Vi: Sync, Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Uniform, 
         }
     }
 
-    pub fn viewport_size(&self) -> Vector2<i32> {
+    pub(crate) fn viewport_size(&self) -> Vector2<i32> {
         self.viewport_size
     }
 
-    pub fn num_tiles(&self) -> Vector2<i32> {
+    pub(crate) fn num_tiles(&self) -> Vector2<i32> {
         self.num_tiles
     }
 
-    pub fn uniforms(&self) -> &Uniforms<'a, U0, U1, U2, U3> {
+    pub(crate) fn uniforms(&self) -> &Uniforms<'a, U0, U1, U2, U3> {
         &self.uniforms
     }
 
-    pub fn raw_triangles(&self) -> &ChunkedVec<(&'a Vi, &'a Vi, &'a Vi, [u32; 4]), 1024> {
+    pub(crate) fn raw_triangles(&self) -> &ChunkedVec<(&'a Vi, &'a Vi, &'a Vi, [u32; 4]), 1024> {
         &self.raw_triangles
     }
 
-    pub fn triangle_data(&self, idx: usize) -> &(RasterizationInfo, TriangleData<Vo>) {
+    pub(crate) fn triangle_data(&self, idx: usize) -> &(RasterizationInfo, TriangleData<Vo>) {
         &self.triangles[idx]
     }
 
-    pub fn tile_tri_indices(&self, tile: Vector2<i32>) -> &[u32] {
+    pub(crate) fn tile_tri_indices(&self, tile: Vector2<i32>) -> &[u32] {
         &self.tiles[(tile.y * self.num_tiles().x + tile.x) as usize].tri_indices
     }
 
-    pub fn add_raw_triangle(
+    pub(crate) fn add_raw_triangle(
         &mut self,
         vi0: &'a Vi,
         vi1: &'a Vi,
@@ -98,7 +98,7 @@ impl<'a, Vi: Sync, Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Uniform, 
         self.raw_triangles.push((vi0, vi1, vi2, uniform_indices));
     }
 
-    pub fn add_triangle(
+    pub(crate) fn add_triangle(
         &mut self,
         rasterization_info: RasterizationInfo,
         vertex_data: [Vo; 3],
@@ -119,7 +119,7 @@ impl<'a, Vi: Sync, Vo: VertexToFragment, U0: Uniform, U1: Uniform, U2: Uniform, 
         id
     }
 
-    pub fn add_tri_to_tile(&mut self, tile: Vector2<i32>, tri_id: u32) {
+    pub(crate) fn add_tri_to_tile(&mut self, tile: Vector2<i32>, tri_id: u32) {
         let stride = self.num_tiles().x;
         self.tiles[(tile.y * stride + tile.x) as usize]
             .tri_indices
