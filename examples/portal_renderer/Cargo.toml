@@ -6,5 +6,4 @@ edition = "2024"
 [dependencies]
 nalvik = { path = "../../crates/nalvik" }
 cgmath = { workspace = true }
-pixels = "0.17.2"
-winit = "0.30.13"
+utils = { path = "../utils" }

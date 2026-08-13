@@ -1,18 +1,15 @@
 use std::f32;
 
-use cgmath::{
-    Matrix3, Matrix4, Rad, Vector2, Vector3, Vector4, perspective, prelude::*, vec2, vec3,
-};
+use cgmath::{Matrix3, Matrix4, Vector2, Vector3, Vector4, prelude::*, vec2, vec3};
 use nalvik::{
-    CullMode, DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut,
-    PERSPECTIVE_CORRECTION, Pipeline, Sampler2d, Uniforms, VertexOutput, VertexToFragment,
+    CullMode, DepthState, DepthTest, FilterMode, Image2d, Image2dView, Image2dViewMut, Pipeline,
+    Sampler2d, Uniforms, VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,
 };
-use winit::dpi::PhysicalSize;
+use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
 
 use crate::{
-    camera::Camera,
     material::Material,
     models::{self, ModelPath, VertexData},
 };
@@ -86,21 +83,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(viewport_size: PhysicalSize<u32>, model_path: &ModelPath) -> Self {
+    pub fn new(model_path: &ModelPath) -> Self {
         Self {
-            depth_buffer: Image2d::new(
-                DepthF32::new(1.0),
-                viewport_size.width,
-                viewport_size.height,
-            ),
+            depth_buffer: Image2d::new(DepthF32::new(1.0), 0, 0),
             models: models::load_model(model_path),
-            size: vec2(viewport_size.width as i32, viewport_size.height as i32),
+            size: vec2(0, 0),
         }
-    }
-
-    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
-        self.size = vec2(new_size.width as i32, new_size.height as i32);
-        self.depth_buffer = Image2d::new(DepthF32::new(1.0), new_size.width, new_size.height);
     }
 
     pub fn aspect_ratio(&self) -> f32 {
@@ -108,75 +96,73 @@ impl Renderer {
     }
 }
 
-pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera) {
-    let view_matrix = camera.view_matrix();
-    let proj_matrix = PERSPECTIVE_CORRECTION
-        * perspective(
-            Rad(f32::consts::PI / 3.0),
-            renderer.aspect_ratio(),
-            0.1,
-            200.0,
+impl AppRenderer for Renderer {
+    fn resize(&mut self, new_width: u32, new_height: u32) {
+        self.size = vec2(new_width as i32, new_height as i32);
+        self.depth_buffer = Image2d::new(DepthF32::new(1.0), new_width, new_height);
+    }
+
+    fn render(&mut self, pixel_buffer: &mut [u8], camera: &Camera) {
+        let view_matrix = camera.view_matrix();
+        let proj_matrix = perspective_proj(f32::consts::PI / 3.0, self.aspect_ratio(), 0.1, 200.0);
+
+        let pipeline = Pipeline::new(vertex_shader, fragment_shader);
+
+        // clear buffer
+        for pix in pixel_buffer.chunks_exact_mut(4) {
+            pix.copy_from_slice(&[108, 182, 204, 0xFF]);
+        }
+
+        let mut framebuffer =
+            Image2dViewMut::over_raw_bytes(pixel_buffer, self.size.x as u32, self.size.y as u32);
+
+        self.depth_buffer.clear(DepthF32::new(1.0));
+        let mut depth_state =
+            DepthState::CompareAndWrite(self.depth_buffer.view_mut(), DepthTest::Less);
+
+        let mut uniform_buffer = Vec::new();
+        let mut texture_buffer = Vec::new();
+
+        uniform_buffer.push(BasicUniforms::new(
+            &Matrix4::one(),
+            &view_matrix,
+            &proj_matrix,
+        ));
+
+        for (_, material) in &self.models {
+            texture_buffer.push(TextureUniforms {
+                texture: material.diffuse_texture().view(),
+                sampler: Sampler2d::new(FilterMode::Nearest),
+            });
+        }
+
+        let mut render_pass = pipeline.begin_render_pass(
+            self.size,
+            Uniforms::new(
+                &uniform_buffer,
+                &texture_buffer,
+                unit_type_buf(),
+                unit_type_buf(),
+            ),
         );
 
-    let pipeline = Pipeline::new(vertex_shader, fragment_shader);
-
-    // clear buffer
-    for pix in pixel_buffer.chunks_exact_mut(4) {
-        pix.copy_from_slice(&[108, 182, 204, 0xFF]);
-    }
-
-    let mut framebuffer = Image2dViewMut::over_raw_bytes(
-        pixel_buffer,
-        renderer.size.x as u32,
-        renderer.size.y as u32,
-    );
-
-    renderer.depth_buffer.clear(DepthF32::new(1.0));
-    let mut depth_state =
-        DepthState::CompareAndWrite(renderer.depth_buffer.view_mut(), DepthTest::Less);
-
-    let mut uniform_buffer = Vec::new();
-    let mut texture_buffer = Vec::new();
-
-    uniform_buffer.push(BasicUniforms::new(
-        &Matrix4::one(),
-        &view_matrix,
-        &proj_matrix,
-    ));
-
-    for (_, material) in &renderer.models {
-        texture_buffer.push(TextureUniforms {
-            texture: material.diffuse_texture().view(),
-            sampler: Sampler2d::new(FilterMode::Nearest),
-        });
-    }
-
-    let mut render_pass = pipeline.begin_render_pass(
-        renderer.size,
-        Uniforms::new(
-            &uniform_buffer,
-            &texture_buffer,
-            unit_type_buf(),
-            unit_type_buf(),
-        ),
-    );
-
-    for (idx, (model, _)) in renderer.models.iter().enumerate() {
-        for tri in model {
-            pipeline.add_triangle(
-                &mut render_pass,
-                &tri[0],
-                &tri[1],
-                &tri[2],
-                [0, idx as u32, 0, 0],
-            )
+        for (idx, (model, _)) in self.models.iter().enumerate() {
+            for tri in model {
+                pipeline.add_triangle(
+                    &mut render_pass,
+                    &tri[0],
+                    &tri[1],
+                    &tri[2],
+                    [0, idx as u32, 0, 0],
+                )
+            }
         }
-    }
 
-    pipeline.run(
-        &mut render_pass,
-        &mut framebuffer,
-        &mut depth_state,
-        CullMode::RenderOnlyCCW,
-    );
+        pipeline.run(
+            &mut render_pass,
+            &mut framebuffer,
+            &mut depth_state,
+            CullMode::RenderOnlyCCW,
+        );
+    }
 }

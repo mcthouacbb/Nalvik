@@ -1,10 +1,10 @@
 [package]
-name = "model_loader"
+name = "utils"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 nalvik = { path = "../../crates/nalvik" }
 cgmath = { workspace = true }
-utils = { path = "../utils" }
-tobj = "4.0.5"
+pixels = "0.17.2"
+winit = "0.30.13"

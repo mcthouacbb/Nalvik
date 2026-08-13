@@ -1,15 +1,15 @@
 use std::f32;
 
-use cgmath::{Matrix4, Rad, Vector2, Vector3, Vector4, prelude::*, vec2, vec3, vec4};
+use cgmath::{Matrix4, Vector2, Vector3, Vector4, prelude::*, vec2, vec3, vec4};
 use nalvik::{
     CullMode, DepthState, DepthTest, FilterMode, Image2dView, Image2dViewMut, Pipeline, Sampler2d,
     Uniforms, VertexOutput, VertexToFragment,
     format::{DepthF32, RgbaU8},
     unit_type_buf,
 };
+use utils::{camera::Camera, projection::oblique_projection};
 
 use crate::{
-    camera::Camera,
     material::Material,
     render::{VertexData, scene::render_scene_objects},
     scene::Portal,
@@ -56,44 +56,6 @@ fn fragment_shader(
     uniforms.sampler.sample(uniforms.portal_texture, uv)
 }
 
-fn oblique_projection(
-    fovy: Rad<f32>,
-    aspect: f32,
-    near_plane: Vector4<f32>,
-    far_k: f32,
-) -> Matrix4<f32> {
-    let two: f32 = 2.0;
-    let f = Rad::cot(fovy / two);
-
-    let c0r0 = f / aspect;
-    let c0r1 = f32::zero();
-    let c0r2 = far_k * near_plane.x;
-    let c0r3 = f32::zero();
-
-    let c1r0 = f32::zero();
-    let c1r1 = f;
-    let c1r2 = far_k * near_plane.y;
-    let c1r3 = f32::zero();
-
-    let c2r0 = f32::zero();
-    let c2r1 = f32::zero();
-    let c2r2 = far_k * near_plane.z;
-    let c2r3 = -f32::one();
-
-    let c3r0 = f32::zero();
-    let c3r1 = f32::zero();
-    let c3r2 = far_k * near_plane.w;
-    let c3r3 = f32::zero();
-
-    #[cfg_attr(rustfmt, rustfmt_skip)]
-        Matrix4::new(
-            c0r0, c0r1, c0r2, c0r3,
-            c1r0, c1r1, c1r2, c1r3,
-            c2r0, c2r1, c2r2, c2r3,
-            c3r0, c3r1, c3r2, c3r3,
-        )
-}
-
 pub fn render_portal_cam(
     main_camera: &Camera,
     scene_objects: &Vec<(Vec<[VertexData; 3]>, Matrix4<f32>, Material)>,
@@ -116,7 +78,7 @@ pub fn render_portal_cam(
     let view_plane = plane_transform.transpose().invert().unwrap() * plane;
 
     let portal_cam_proj_matrix =
-        oblique_projection(Rad(f32::consts::PI / 3.0), aspect_ratio, view_plane, 0.01);
+        oblique_projection(f32::consts::PI / 3.0, aspect_ratio, view_plane, 0.01);
 
     dst_portal
         .render_target

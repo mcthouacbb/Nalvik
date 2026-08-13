@@ -3,6 +3,9 @@ resolver = "3"
 members = [
     "crates/macros",
     "crates/nalvik",
+
+    "examples/utils",
+
     "examples/height_map_terrain",
     "examples/model_loader",
     "examples/portal_renderer",

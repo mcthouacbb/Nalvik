@@ -3,15 +3,14 @@ mod scene;
 
 use std::f32;
 
-use cgmath::{Rad, Vector2, Vector3, perspective, vec2, vec4};
+use cgmath::{Vector2, Vector3, vec2, vec4};
 use nalvik::{
-    Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION,
+    Image2d, Image2dViewMut,
     format::{DepthF32, RgbaU8},
 };
-use winit::dpi::PhysicalSize;
+use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
 
 use crate::{
-    camera::Camera,
     render::{
         portal::{render_portal_cam, render_portal_surface},
         scene::render_scene_objects,
@@ -50,38 +49,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(viewport_size: PhysicalSize<u32>) -> Self {
-        let size = vec2(viewport_size.width as i32, viewport_size.height as i32);
+    pub fn new() -> Self {
         Self {
-            depth_buffer: Image2d::new(
-                DepthF32::new(1.0),
-                viewport_size.width,
-                viewport_size.height,
-            ),
-            scene: scene(size),
-            size,
+            depth_buffer: Image2d::new(DepthF32::new(1.0), 0, 0),
+            scene: scene(vec2(0, 0)),
+            size: vec2(0, 0),
         }
-    }
-
-    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
-        self.size = vec2(new_size.width as i32, new_size.height as i32);
-        self.depth_buffer = Image2d::new(DepthF32::new(1.0), new_size.width, new_size.height);
-
-        self.scene.portal0.render_target = Image2d::new(
-            RgbaU8::new(vec4(108, 182, 204, 0xFF)),
-            new_size.width,
-            new_size.height,
-        );
-        self.scene.portal0.depth_buffer =
-            Image2d::new(DepthF32::new(1.0), new_size.width, new_size.height);
-
-        self.scene.portal1.render_target = Image2d::new(
-            RgbaU8::new(vec4(108, 182, 204, 0xFF)),
-            new_size.width,
-            new_size.height,
-        );
-        self.scene.portal1.depth_buffer =
-            Image2d::new(DepthF32::new(1.0), new_size.width, new_size.height);
     }
 
     pub fn aspect_ratio(&self) -> f32 {
@@ -89,78 +62,81 @@ impl Renderer {
     }
 }
 
-pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera) {
-    let view_matrix = camera.view_matrix();
-    let proj_matrix = PERSPECTIVE_CORRECTION
-        * perspective(
-            Rad(f32::consts::PI / 3.0),
-            renderer.aspect_ratio(),
-            0.1,
-            200.0,
-        );
+impl AppRenderer for Renderer {
+    fn resize(&mut self, new_width: u32, new_height: u32) {
+        self.size = vec2(new_width as i32, new_height as i32);
+        self.depth_buffer = Image2d::new(DepthF32::new(1.0), new_width, new_height);
 
-    // clear buffer
-    for pix in pixel_buffer.chunks_exact_mut(4) {
-        pix.copy_from_slice(&[108, 182, 204, 0xFF]);
+        self.scene.portal0.render_target = Image2d::new(
+            RgbaU8::new(vec4(108, 182, 204, 0xFF)),
+            new_width,
+            new_height,
+        );
+        self.scene.portal0.depth_buffer = Image2d::new(DepthF32::new(1.0), new_width, new_height);
+
+        self.scene.portal1.render_target = Image2d::new(
+            RgbaU8::new(vec4(108, 182, 204, 0xFF)),
+            new_width,
+            new_height,
+        );
+        self.scene.portal1.depth_buffer = Image2d::new(DepthF32::new(1.0), new_width, new_height);
     }
 
-    renderer.depth_buffer.clear(DepthF32::new(1.0));
+    fn render(&mut self, pixel_buffer: &mut [u8], camera: &Camera) {
+        let view_matrix = camera.view_matrix();
+        let proj_matrix = perspective_proj(f32::consts::PI / 3.0, self.aspect_ratio(), 0.1, 200.0);
 
-    render_scene_objects(
-        Image2dViewMut::over_raw_bytes(
-            pixel_buffer,
-            renderer.size.x as u32,
-            renderer.size.y as u32,
-        ),
-        renderer.depth_buffer.view_mut(),
-        &renderer.scene.objects,
-        &view_matrix,
-        &proj_matrix,
-        renderer.size,
-    );
+        // clear buffer
+        for pix in pixel_buffer.chunks_exact_mut(4) {
+            pix.copy_from_slice(&[108, 182, 204, 0xFF]);
+        }
 
-    let aspect_ratio = renderer.aspect_ratio();
-    render_portal_cam(
-        camera,
-        &renderer.scene.objects,
-        &renderer.scene.portal1,
-        &mut renderer.scene.portal0,
-        aspect_ratio,
-        renderer.size,
-    );
+        self.depth_buffer.clear(DepthF32::new(1.0));
 
-    render_portal_cam(
-        camera,
-        &renderer.scene.objects,
-        &renderer.scene.portal0,
-        &mut renderer.scene.portal1,
-        aspect_ratio,
-        renderer.size,
-    );
+        render_scene_objects(
+            Image2dViewMut::over_raw_bytes(pixel_buffer, self.size.x as u32, self.size.y as u32),
+            self.depth_buffer.view_mut(),
+            &self.scene.objects,
+            &view_matrix,
+            &proj_matrix,
+            self.size,
+        );
 
-    render_portal_surface(
-        Image2dViewMut::over_raw_bytes(
-            pixel_buffer,
-            renderer.size.x as u32,
-            renderer.size.y as u32,
-        ),
-        renderer.depth_buffer.view_mut(),
-        &renderer.scene.portal0,
-        &view_matrix,
-        &proj_matrix,
-        renderer.size,
-    );
+        let aspect_ratio = self.aspect_ratio();
+        render_portal_cam(
+            camera,
+            &self.scene.objects,
+            &self.scene.portal1,
+            &mut self.scene.portal0,
+            aspect_ratio,
+            self.size,
+        );
 
-    render_portal_surface(
-        Image2dViewMut::over_raw_bytes(
-            pixel_buffer,
-            renderer.size.x as u32,
-            renderer.size.y as u32,
-        ),
-        renderer.depth_buffer.view_mut(),
-        &renderer.scene.portal1,
-        &view_matrix,
-        &proj_matrix,
-        renderer.size,
-    );
+        render_portal_cam(
+            camera,
+            &self.scene.objects,
+            &self.scene.portal0,
+            &mut self.scene.portal1,
+            aspect_ratio,
+            self.size,
+        );
+
+        render_portal_surface(
+            Image2dViewMut::over_raw_bytes(pixel_buffer, self.size.x as u32, self.size.y as u32),
+            self.depth_buffer.view_mut(),
+            &self.scene.portal0,
+            &view_matrix,
+            &proj_matrix,
+            self.size,
+        );
+
+        render_portal_surface(
+            Image2dViewMut::over_raw_bytes(pixel_buffer, self.size.x as u32, self.size.y as u32),
+            self.depth_buffer.view_mut(),
+            &self.scene.portal1,
+            &view_matrix,
+            &proj_matrix,
+            self.size,
+        );
+    }
 }

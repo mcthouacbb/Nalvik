@@ -1,19 +1,13 @@
 use std::f32;
 
-use cgmath::{
-    InnerSpace, Matrix, Matrix3, Matrix4, Rad, SquareMatrix, Vector2, Vector3, Vector4,
-    perspective, vec2, vec3,
-};
+use cgmath::{Matrix, Matrix3, Matrix4, Vector2, Vector3, Vector4, prelude::*, vec2, vec3};
 use nalvik::{
-    CullMode, DepthState, DepthTest, Image2d, Image2dViewMut, PERSPECTIVE_CORRECTION, Pipeline,
-    Uniforms, VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
+    CullMode, DepthState, DepthTest, Image2d, Image2dViewMut, Pipeline, Uniforms, VertexOutput,
+    VertexToFragment, format::DepthF32, unit_type_buf,
 };
-use winit::dpi::PhysicalSize;
+use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
 
-use crate::{
-    camera::Camera,
-    terrain::manager::{CHUNK_SIZE, ChunkManager},
-};
+use crate::terrain::manager::{CHUNK_SIZE, ChunkManager};
 
 #[derive(Clone, Copy)]
 pub struct BasicVertexData {
@@ -91,21 +85,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(viewport_size: PhysicalSize<u32>, render_distance: u32) -> Self {
+    pub fn new(render_distance: u32) -> Self {
         Self {
-            depth_buffer: Image2d::new(
-                DepthF32::new(1.0),
-                viewport_size.width,
-                viewport_size.height,
-            ),
-            size: vec2(viewport_size.width as i32, viewport_size.height as i32),
+            depth_buffer: Image2d::new(DepthF32::new(1.0), 0, 0),
+            size: vec2(0 as i32, 0 as i32),
             chunk_manager: ChunkManager::new(render_distance),
         }
-    }
-
-    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
-        self.size = vec2(new_size.width as i32, new_size.height as i32);
-        self.depth_buffer = Image2d::new(DepthF32::new(1.0), new_size.width, new_size.height);
     }
 
     pub fn aspect_ratio(&self) -> f32 {
@@ -113,86 +98,84 @@ impl Renderer {
     }
 }
 
-pub fn render(renderer: &mut Renderer, pixel_buffer: &mut [u8], camera: &Camera) {
-    let view_matrix = camera.view_matrix();
-    let proj_matrix = PERSPECTIVE_CORRECTION
-        * perspective(
-            Rad(f32::consts::PI / 3.0),
-            renderer.aspect_ratio(),
+impl AppRenderer for Renderer {
+    fn resize(&mut self, new_width: u32, new_height: u32) {
+        self.size = vec2(new_width as i32, new_height as i32);
+        self.depth_buffer = Image2d::new(DepthF32::new(1.0), new_width, new_height);
+    }
+
+    fn render(&mut self, pixel_buffer: &mut [u8], camera: &Camera) {
+        let view_matrix = camera.view_matrix();
+        let proj_matrix = perspective_proj(
+            f32::consts::PI / 3.0,
+            self.aspect_ratio(),
             0.25,
-            renderer.chunk_manager.render_distance() as f32
+            self.chunk_manager.render_distance() as f32
                 * CHUNK_SIZE.cast::<f32>().unwrap().magnitude()
                 + 10.0,
         );
 
-    renderer.chunk_manager.update_chunks(camera.position.xz());
+        self.chunk_manager.update_chunks(camera.position.xz());
 
-    let pipeline = Pipeline::new(vertex_shader, fragment_shader);
+        let pipeline = Pipeline::new(vertex_shader, fragment_shader);
 
-    // clear buffer
-    for pix in pixel_buffer.chunks_exact_mut(4) {
-        pix.copy_from_slice(&[108, 182, 204, 0xFF]);
-    }
-
-    let mut framebuffer = Image2dViewMut::over_raw_bytes(
-        pixel_buffer,
-        renderer.size.x as u32,
-        renderer.size.y as u32,
-    );
-
-    renderer.depth_buffer.clear(DepthF32::new(1.0));
-    let mut depth_state =
-        DepthState::CompareAndWrite(renderer.depth_buffer.view_mut(), DepthTest::Less);
-
-    let mut uniform_buffer = Vec::new();
-
-    for chunk in &renderer
-        .chunk_manager
-        .get_active_chunks(camera.position.xz())
-    {
-        let model_matrix = Matrix4::from_translation(vec3(
-            chunk.base_pos().x as f32,
-            -3.0,
-            chunk.base_pos().y as f32,
-        ));
-        uniform_buffer.push(BasicUniforms::new(
-            &model_matrix,
-            &view_matrix,
-            &proj_matrix,
-        ));
-    }
-
-    let mut render_pass = pipeline.begin_render_pass(
-        renderer.size,
-        Uniforms::new(
-            &uniform_buffer,
-            unit_type_buf(),
-            unit_type_buf(),
-            unit_type_buf(),
-        ),
-    );
-
-    for (idx, &chunk) in (&renderer
-        .chunk_manager
-        .get_active_chunks(camera.position.xz()))
-        .iter()
-        .enumerate()
-    {
-        for tri in chunk.mesh() {
-            pipeline.add_triangle(
-                &mut render_pass,
-                &tri[0],
-                &tri[1],
-                &tri[2],
-                [idx as u32, 0, 0, 0],
-            );
+        // clear buffer
+        for pix in pixel_buffer.chunks_exact_mut(4) {
+            pix.copy_from_slice(&[108, 182, 204, 0xFF]);
         }
-    }
 
-    pipeline.run(
-        &mut render_pass,
-        &mut framebuffer,
-        &mut depth_state,
-        CullMode::RenderOnlyCCW,
-    );
+        let mut framebuffer =
+            Image2dViewMut::over_raw_bytes(pixel_buffer, self.size.x as u32, self.size.y as u32);
+
+        self.depth_buffer.clear(DepthF32::new(1.0));
+        let mut depth_state =
+            DepthState::CompareAndWrite(self.depth_buffer.view_mut(), DepthTest::Less);
+
+        let mut uniform_buffer = Vec::new();
+
+        for chunk in &self.chunk_manager.get_active_chunks(camera.position.xz()) {
+            let model_matrix = Matrix4::from_translation(vec3(
+                chunk.base_pos().x as f32,
+                -3.0,
+                chunk.base_pos().y as f32,
+            ));
+            uniform_buffer.push(BasicUniforms::new(
+                &model_matrix,
+                &view_matrix,
+                &proj_matrix,
+            ));
+        }
+
+        let mut render_pass = pipeline.begin_render_pass(
+            self.size,
+            Uniforms::new(
+                &uniform_buffer,
+                unit_type_buf(),
+                unit_type_buf(),
+                unit_type_buf(),
+            ),
+        );
+
+        for (idx, &chunk) in (&self.chunk_manager.get_active_chunks(camera.position.xz()))
+            .iter()
+            .enumerate()
+        {
+            for tri in chunk.mesh() {
+                pipeline.add_triangle(
+                    &mut render_pass,
+                    &tri[0],
+                    &tri[1],
+                    &tri[2],
+                    [idx as u32, 0, 0, 0],
+                );
+            }
+        }
+
+        pipeline.run(
+            &mut render_pass,
+            &mut framebuffer,
+            &mut depth_state,
+            CullMode::RenderOnlyCCW,
+        );
+    }
 }

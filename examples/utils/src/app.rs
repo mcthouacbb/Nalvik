@@ -6,50 +6,60 @@ use winit::{
     application::ApplicationHandler,
     dpi::PhysicalSize,
     event::{DeviceEvent, ElementState, MouseButton, WindowEvent},
-    event_loop::ActiveEventLoop,
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
     window::{CursorGrabMode, Window, WindowId},
 };
 
-use crate::{
-    camera::Camera,
-    render::{Renderer, render},
-};
+use crate::{camera::Camera, renderer::AppRenderer};
 
-pub struct App<'a> {
+pub fn run_app<R: AppRenderer>(renderer: R) {
+    const DEFAULT_SPEED: f32 = 12.0;
+    run_app_with_camera_speed(renderer, DEFAULT_SPEED);
+}
+
+pub fn run_app_with_camera_speed<R: AppRenderer>(renderer: R, speed: f32) {
+    let event_loop = EventLoop::new().expect("Could not create event loop");
+    event_loop.set_control_flow(ControlFlow::Poll);
+
+    let mut app = App::new(renderer, speed);
+    if let Err(err) = event_loop.run_app(&mut app) {
+        eprintln!("Event Loop Error: {}", err.to_string());
+    }
+}
+
+pub struct App<'a, R: AppRenderer> {
     window: Option<Arc<Window>>,
     pixels: Option<Pixels<'a>>,
-    renderer: Option<Renderer>,
+    renderer: R,
     size: PhysicalSize<u32>,
     minimized: bool,
     start_time: Instant,
     prev_time: Instant,
     avg_dt: f64,
+    speed: f32,
 
     pressed_keys: HashSet<KeyCode>,
     camera: Camera,
     cursor_locked: bool,
-    render_distance: u32,
-    speed: f32,
 }
 
-impl<'a> App<'a> {
-    pub fn new(render_distance: u32, speed: f32) -> Self {
+impl<'a, R: AppRenderer> App<'a, R> {
+    pub fn new(renderer: R, speed: f32) -> Self {
         let time = Instant::now();
         Self {
             window: None,
             pixels: None,
-            renderer: None,
+            renderer,
             size: PhysicalSize::new(0, 0),
             minimized: false,
             start_time: time,
             prev_time: time,
             avg_dt: 0.0,
+            speed,
             pressed_keys: HashSet::new(),
             camera: Camera::new(vec3(0.0, 0.0, 0.0), vec2(0.0, 0.0)),
             cursor_locked: false,
-            render_distance,
-            speed,
         }
     }
 
@@ -63,10 +73,6 @@ impl<'a> App<'a> {
 
     fn pixels_mut(&mut self) -> &mut Pixels<'a> {
         self.pixels.as_mut().unwrap()
-    }
-
-    fn renderer_mut(&mut self) -> &mut Renderer {
-        self.renderer.as_mut().unwrap()
     }
 
     fn is_key_pressed(&self, key_code: KeyCode) -> bool {
@@ -86,7 +92,7 @@ impl<'a> App<'a> {
     }
 }
 
-impl<'a> ApplicationHandler for App<'a> {
+impl<'a, R: AppRenderer> ApplicationHandler for App<'a, R> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             self.window = Some(Arc::new(
@@ -115,11 +121,7 @@ impl<'a> ApplicationHandler for App<'a> {
                 .unwrap();
         }
 
-        if self.renderer.is_none() {
-            self.renderer = Some(Renderer::new(size, self.render_distance));
-        } else {
-            self.renderer_mut().resize(size);
-        }
+        self.renderer.resize(size.width, size.height);
     }
 
     fn window_event(
@@ -145,7 +147,7 @@ impl<'a> ApplicationHandler for App<'a> {
                         .resize_buffer(size.width, size.height)
                         .unwrap();
 
-                    self.renderer_mut().resize(size);
+                    self.renderer.resize(size.width, size.height);
                 }
 
                 self.window().request_redraw();
@@ -202,11 +204,8 @@ impl<'a> ApplicationHandler for App<'a> {
                             self.speed * dt.as_secs_f32() * self.camera.rotation.y.cos();
                     }
 
-                    render(
-                        self.renderer.as_mut().unwrap(),
-                        self.pixels.as_mut().unwrap().frame_mut(),
-                        &self.camera,
-                    );
+                    self.renderer
+                        .render(self.pixels.as_mut().unwrap().frame_mut(), &self.camera);
                 }
 
                 self.pixels().render().unwrap();

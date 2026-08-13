@@ -20,4 +20,3 @@ pub use pipeline::{
 };
 pub use sampler::{FilterMode, Sampler2d};
 pub use uniform::{Uniform, Uniforms, unit_type_buf};
-pub use util::PERSPECTIVE_CORRECTION;

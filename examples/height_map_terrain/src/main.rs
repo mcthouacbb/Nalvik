@@ -1,11 +1,9 @@
-mod app;
-mod camera;
 mod render;
 mod terrain;
 
-use winit::event_loop::{ControlFlow, EventLoop};
+use utils::app::run_app_with_camera_speed;
 
-use crate::app::App;
+use crate::render::Renderer;
 
 fn help_message() {
     println!("Height Map Terrain");
@@ -116,11 +114,6 @@ fn main() {
         return;
     }
 
-    let event_loop = EventLoop::new().expect("Could not create event loop");
-    event_loop.set_control_flow(ControlFlow::Poll);
-
-    let mut app = App::new(parsed_args.render_dist, parsed_args.speed);
-    if let Err(err) = event_loop.run_app(&mut app) {
-        eprintln!("Event Loop Error: {}", err.to_string());
-    }
+    let renderer = Renderer::new(parsed_args.render_dist);
+    run_app_with_camera_speed(renderer, parsed_args.speed);
 }

@@ -1,12 +1,10 @@
-mod app;
-mod camera;
 mod material;
 mod models;
 mod render;
 
-use winit::event_loop::{ControlFlow, EventLoop};
+use utils::app::run_app;
 
-use crate::{app::App, models::ModelPath};
+use crate::{models::ModelPath, render::Renderer};
 
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
@@ -23,6 +21,7 @@ fn main() {
         println!();
         println!("    -b, --builtin");
         println!("        Use a builtin model instead of finding the model in the filesystem");
+        println!("        Supported builtins: cube");
         return;
     }
     let path = if args[1] == "--builtin" || args[1] == "-b" {
@@ -35,11 +34,6 @@ fn main() {
         ModelPath::File(args[1].clone())
     };
 
-    let event_loop = EventLoop::new().expect("Could not create event loop");
-    event_loop.set_control_flow(ControlFlow::Poll);
-
-    let mut app = App::new(path);
-    if let Err(err) = event_loop.run_app(&mut app) {
-        eprintln!("Event Loop Error: {}", err.to_string());
-    }
+    let renderer = Renderer::new(&path);
+    run_app(renderer);
 }
