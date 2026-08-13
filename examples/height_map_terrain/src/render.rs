@@ -174,6 +174,7 @@ impl AppRenderer for Renderer {
         pipeline.run(
             &mut render_pass,
             &mut framebuffer,
+            None,
             &mut depth_state,
             CullMode::RenderOnlyCCW,
         );

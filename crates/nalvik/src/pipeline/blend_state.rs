@@ -1,5 +1,7 @@
 use cgmath::{Vector3, Vector4, prelude::*, vec3};
 
+use crate::format::{ImageFormat, RgbaFormat};
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum BlendOp {
     Add,
@@ -44,7 +46,7 @@ pub enum BlendFactor {
 }
 
 impl BlendFactor {
-    pub fn compute_blended_src_dst<const CLAMP: bool>(
+    pub fn compute_blended_src_dst<T: RgbaFormat>(
         src_color_factor: BlendFactor,
         src_alpha_factor: BlendFactor,
         dst_color_factor: BlendFactor,
@@ -52,7 +54,7 @@ impl BlendFactor {
         mut src: Vector4<f32>,
         mut dst: Vector4<f32>,
     ) -> (Vector3<f32>, Vector3<f32>, f32, f32) {
-        if CLAMP {
+        if T::NORMALIZED {
             src = src.map(|x| x.clamp(0.0, 1.0));
             dst = dst.map(|x| x.clamp(0.0, 1.0));
         }
@@ -120,9 +122,9 @@ pub struct BlendState {
 }
 
 impl BlendState {
-    pub fn blend<const CLAMP: bool>(&self, src: Vector4<f32>, dst: Vector4<f32>) -> Vector4<f32> {
+    pub fn blend<T: RgbaFormat>(&self, src: Vector4<f32>, dst: Vector4<f32>) -> Vector4<f32> {
         let (blended_src_color, blended_dst_color, blended_src_alpha, blended_dst_alpha) =
-            BlendFactor::compute_blended_src_dst::<CLAMP>(
+            BlendFactor::compute_blended_src_dst::<T>(
                 self.src_color_blend_factor,
                 self.src_alpha_blend_factor,
                 self.dst_color_blend_factor,

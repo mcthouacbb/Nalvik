@@ -1,7 +1,9 @@
 use bytemuck::{AnyBitPattern, NoUninit};
 use cgmath::{Vector4, vec4};
 
-pub trait ImageFormat: Copy + Sync + Send {}
+pub trait ImageFormat: Copy + Sync + Send {
+    const NORMALIZED: bool;
+}
 
 pub trait RgbaFormat: ImageFormat + From<RgbaF32> {
     fn normalized(&self) -> Vector4<f32>;
@@ -28,7 +30,10 @@ impl RgbaF32 {
     }
 }
 
-impl ImageFormat for RgbaF32 {}
+impl ImageFormat for RgbaF32 {
+    const NORMALIZED: bool = false;
+}
+
 impl RgbaFormat for RgbaF32 {
     fn normalized(&self) -> Vector4<f32> {
         vec4(self.rgba[0], self.rgba[1], self.rgba[2], self.rgba[3])
@@ -49,7 +54,9 @@ impl RgbaU8 {
     }
 }
 
-impl ImageFormat for RgbaU8 {}
+impl ImageFormat for RgbaU8 {
+    const NORMALIZED: bool = true;
+}
 
 impl RgbaFormat for RgbaU8 {
     fn normalized(&self) -> Vector4<f32> {
@@ -93,7 +100,9 @@ impl From<f32> for DepthF32 {
     }
 }
 
-impl ImageFormat for DepthF32 {}
+impl ImageFormat for DepthF32 {
+    const NORMALIZED: bool = true;
+}
 
 impl DepthFormat for DepthF32 {
     fn compare_less(a: &Self, b: &Self) -> bool {

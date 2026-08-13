@@ -128,6 +128,7 @@ pub fn render_scene_objects<'a>(
     pipeline.run(
         &mut render_pass,
         &mut color_buffer,
+        None,
         &mut DepthState::CompareAndWrite(depth_buffer, DepthTest::Less),
         CullMode::RenderOnlyCCW,
     );
