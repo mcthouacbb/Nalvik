@@ -6,11 +6,13 @@ use rayon::iter::{
 
 use crate::{
     clip,
+    format::RgbaFormat,
     image::{
-        format::{DepthFormat, ImageFormat, RgbaF32},
+        format::{DepthFormat, RgbaF32},
         view::Image2dViewMut,
     },
     pipeline::{
+        blend_state::BlendState,
         depth_state::{DepthState, DepthTest},
         fragment::FragmentShader,
         render_pass::{RenderPass, TRI_BUF_CHUNK_SIZE, TriangleData},
@@ -22,6 +24,7 @@ use crate::{
     uniform::{Uniform, Uniforms},
 };
 
+pub mod blend_state;
 pub mod depth_state;
 mod fragment;
 pub mod render_pass;
@@ -108,10 +111,11 @@ impl<
         render_pass.add_raw_triangle(vi0, vi1, vi2, uniform_indices);
     }
 
-    pub fn run<'a, T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
+    pub fn run<'a, T: RgbaFormat, D: DepthFormat>(
         &self,
         render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
         color_buffer: &mut Image2dViewMut<'a, T>,
+        blend_state: Option<BlendState>,
         depth_state: &mut DepthState<'a, D>,
         cull_mode: CullMode,
     ) {
@@ -129,6 +133,7 @@ impl<
                 .run_with_depth_compare_and_write(
                     render_pass,
                     color_buffer,
+                    blend_state,
                     depth_buffer,
                     *depth_test,
                 ),
@@ -232,10 +237,11 @@ impl<
         }
     }
 
-    fn run_with_depth_compare_and_write<T: ImageFormat + From<RgbaF32>, D: DepthFormat>(
+    fn run_with_depth_compare_and_write<T: RgbaFormat, D: DepthFormat>(
         &self,
         render_pass: &mut RenderPass<Vi, Vo, U0, U1, U2, U3>,
         color_buffer: &mut Image2dViewMut<T>,
+        blend_state: Option<BlendState>,
         depth_buffer: &mut Image2dViewMut<D>,
         depth_test: DepthTest,
     ) {
@@ -311,11 +317,18 @@ impl<
                             );
                             fi.scale_w(w);
 
-                            let color = self
+                            let src = self
                                 .fragment
                                 .run(&fi, render_pass.uniforms().get(tri_data.uniform_indices));
                             unsafe {
-                                *color_buf_tile.get_ptr(x, y).as_mut() = RgbaF32::new(color).into()
+                                if let Some(blend_state) = blend_state.as_ref() {
+                                    let dst = color_buf_tile.get_ptr(x, y).as_ref().normalized();
+                                    *color_buf_tile.get_ptr(x, y).as_mut() =
+                                        RgbaF32::new(blend_state.blend::<T>(src, dst)).into()
+                                } else {
+                                    *color_buf_tile.get_ptr(x, y).as_mut() =
+                                        RgbaF32::new(src).into()
+                                }
                             }
                         }
                     },

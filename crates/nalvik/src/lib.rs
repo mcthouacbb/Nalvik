@@ -14,6 +14,7 @@ pub use image::{
 pub use macros::VertexToFragment;
 pub use pipeline::{
     CullMode, Pipeline, VertexOutput,
+    blend_state::{BlendFactor, BlendOp, BlendState},
     depth_state::{DepthState, DepthTest},
     render_pass::RenderPass,
     vertex_to_fragment::VertexToFragment,
