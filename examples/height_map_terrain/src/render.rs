@@ -2,38 +2,40 @@ use std::f32;
 
 use cgmath::{Matrix, Matrix3, Matrix4, Vector2, Vector3, Vector4, prelude::*, vec2, vec3};
 use nalvik::{
-    CullMode, DepthState, DepthTest, Image2d, Image2dViewMut, Pipeline, Uniforms, VertexOutput,
-    VertexToFragment, format::DepthF32, unit_type_buf,
+    BlendFactor, BlendOp, BlendState, CullMode, DepthState, DepthTest, Image2d, Image2dViewMut,
+    Pipeline, Uniforms, VertexOutput, VertexToFragment,
+    format::{DepthF32, RgbaU8},
+    unit_type_buf,
 };
 use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
 
 use crate::terrain::manager::{CHUNK_SIZE, ChunkManager};
 
 #[derive(Clone, Copy)]
-pub struct BasicVertexData {
+pub struct TerrainVertexData {
     pos: Vector3<f32>,
     color: Vector3<f32>,
     normal: Vector3<f32>,
 }
 
-impl BasicVertexData {
+impl TerrainVertexData {
     pub fn new(pos: Vector3<f32>, color: Vector3<f32>, normal: Vector3<f32>) -> Self {
         Self { pos, color, normal }
     }
 }
 
 #[derive(Clone, Copy, VertexToFragment)]
-struct BasicVertexOutput {
+struct TerrainVertexOutput {
     color: Vector3<f32>,
     normal: Vector3<f32>,
 }
 
-struct BasicUniforms {
+struct TransformUniforms {
     mvp_matrix: Matrix4<f32>,
     normal_matrix: Matrix3<f32>,
 }
 
-impl BasicUniforms {
+impl TransformUniforms {
     fn new(
         model_matrix: &Matrix4<f32>,
         view_matrix: &Matrix4<f32>,
@@ -53,29 +55,50 @@ impl BasicUniforms {
     }
 }
 
-fn vertex_shader(
-    vertex_input: &BasicVertexData,
-    (uniforms, _, _, _): (&BasicUniforms, &(), &(), &()),
-) -> VertexOutput<BasicVertexOutput> {
+fn terrain_vertex_shader(
+    vertex_input: &TerrainVertexData,
+    (uniforms, _, _, _): (&TransformUniforms, &(), &(), &()),
+) -> VertexOutput<TerrainVertexOutput> {
     let out_pos = uniforms.mvp_matrix * vertex_input.pos.extend(1.0);
     let out_normal = (uniforms.normal_matrix * vertex_input.normal).normalize();
     VertexOutput {
         position: out_pos,
-        data: BasicVertexOutput {
+        data: TerrainVertexOutput {
             color: vertex_input.color,
             normal: out_normal,
         },
     }
 }
 
-fn fragment_shader(
-    fragment_input: &BasicVertexOutput,
-    _: (&BasicUniforms, &(), &(), &()),
+fn terrain_fragment_shader(
+    fragment_input: &TerrainVertexOutput,
+    _: (&TransformUniforms, &(), &(), &()),
 ) -> Vector4<f32> {
     // vec3(-0.4, -1, -0.5).normalized()
     const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
     let brightness = 0.5 * (fragment_input.normal.normalize().dot(-LIGHT_DIR) + 1.0);
     (fragment_input.color * brightness).extend(1.0)
+}
+
+fn water_vertex_shader(
+    vertex_pos: &Vector3<f32>,
+    (uniforms, _, _, _): (&TransformUniforms, &(), &(), &()),
+) -> VertexOutput<()> {
+    let out_pos = uniforms.mvp_matrix * vertex_pos.extend(1.0);
+    VertexOutput {
+        position: out_pos,
+        data: (),
+    }
+}
+
+fn water_fragment_shader(
+    _fragment_input: &(),
+    _: (&TransformUniforms, &(), &(), &()),
+) -> Vector4<f32> {
+    // vec3(-0.4, -1, -0.5).normalized()
+    const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
+    let brightness = 0.5 * (vec3(0.0, 1.0, 0.0).dot(-LIGHT_DIR) + 1.0);
+    (vec3(0.365, 0.702, 0.91) * brightness).extend(0.0)
 }
 
 pub struct Renderer {
@@ -117,8 +140,6 @@ impl AppRenderer for Renderer {
 
         self.chunk_manager.update_chunks(camera.position.xz());
 
-        let pipeline = Pipeline::new(vertex_shader, fragment_shader);
-
         // clear buffer
         for pix in pixel_buffer.chunks_exact_mut(4) {
             pix.copy_from_slice(&[108, 182, 204, 0xFF]);
@@ -131,6 +152,8 @@ impl AppRenderer for Renderer {
         let mut depth_state =
             DepthState::CompareAndWrite(self.depth_buffer.view_mut(), DepthTest::Less);
 
+        let terrain_pipeline = Pipeline::new(terrain_vertex_shader, terrain_fragment_shader);
+
         let mut uniform_buffer = Vec::new();
 
         for chunk in &self.chunk_manager.get_active_chunks(camera.position.xz()) {
@@ -139,14 +162,14 @@ impl AppRenderer for Renderer {
                 -3.0,
                 chunk.base_pos().y as f32,
             ));
-            uniform_buffer.push(BasicUniforms::new(
+            uniform_buffer.push(TransformUniforms::new(
                 &model_matrix,
                 &view_matrix,
                 &proj_matrix,
             ));
         }
 
-        let mut render_pass = pipeline.begin_render_pass(
+        let mut render_pass = terrain_pipeline.begin_render_pass(
             self.size,
             Uniforms::new(
                 &uniform_buffer,
@@ -161,7 +184,7 @@ impl AppRenderer for Renderer {
             .enumerate()
         {
             for tri in chunk.mesh() {
-                pipeline.add_triangle(
+                terrain_pipeline.add_triangle(
                     &mut render_pass,
                     &tri[0],
                     &tri[1],
@@ -171,12 +194,68 @@ impl AppRenderer for Renderer {
             }
         }
 
-        pipeline.run(
+        terrain_pipeline.run(
             &mut render_pass,
             &mut framebuffer,
             None,
             &mut depth_state,
             CullMode::RenderOnlyCCW,
+        );
+
+        let water_pipeline = Pipeline::new(water_vertex_shader, water_fragment_shader);
+        let water_quad = [
+            [
+                vec3(0.0, 0.3, 0.0),
+                vec3(0.0, 0.3, 16.0),
+                vec3(16.0, 0.3, 16.0),
+            ],
+            [
+                vec3(16.0, 0.3, 16.0),
+                vec3(16.0, 0.3, 0.0),
+                vec3(0.0, 0.3, 0.0),
+            ],
+        ];
+
+        let mut render_pass = water_pipeline.begin_render_pass(
+            self.size,
+            Uniforms::new(
+                &uniform_buffer,
+                unit_type_buf(),
+                unit_type_buf(),
+                unit_type_buf(),
+            ),
+        );
+
+        for (idx, _) in (&self.chunk_manager.get_active_chunks(camera.position.xz()))
+            .iter()
+            .enumerate()
+        {
+            for tri in &water_quad {
+                water_pipeline.add_triangle(
+                    &mut render_pass,
+                    &tri[0],
+                    &tri[1],
+                    &tri[2],
+                    [idx as u32, 0, 0, 0],
+                );
+            }
+        }
+
+        let blend_state = BlendState {
+            color_blend_op: BlendOp::Add,
+            alpha_blend_op: BlendOp::Add,
+            src_color_blend_factor: BlendFactor::SrcAlpha,
+            dst_color_blend_factor: BlendFactor::OneMinusSrcAlpha,
+            src_alpha_blend_factor: BlendFactor::One,
+            dst_alpha_blend_factor: BlendFactor::Zero,
+        };
+
+        water_pipeline.run(
+            &mut render_pass,
+            &mut framebuffer,
+            Some(blend_state),
+            &mut depth_state,
+            CullMode::RenderAll,
         );
     }
 }

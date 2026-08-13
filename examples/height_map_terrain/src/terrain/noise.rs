@@ -14,8 +14,7 @@ impl Biome {
         match self {
             Self::Ocean => {
                 if vertex.y < 0.3 {
-                    vec3(0.365, 0.702, 0.91)
-                    // vec3(0.612, 0.604, 0.584)
+                    vec3(0.612, 0.604, 0.584)
                 } else {
                     vec3(0.831, 0.761, 0.325)
                 }

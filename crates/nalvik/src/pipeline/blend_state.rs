@@ -1,6 +1,6 @@
 use cgmath::{Vector3, Vector4, prelude::*, vec3};
 
-use crate::format::{ImageFormat, RgbaFormat};
+use crate::format::RgbaFormat;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BlendOp {
@@ -53,7 +53,7 @@ impl BlendFactor {
         dst_alpha_factor: BlendFactor,
         mut src: Vector4<f32>,
         mut dst: Vector4<f32>,
-    ) -> (Vector3<f32>, Vector3<f32>, f32, f32) {
+    ) -> (Vector3<f32>, f32, Vector3<f32>, f32) {
         if T::NORMALIZED {
             src = src.map(|x| x.clamp(0.0, 1.0));
             dst = dst.map(|x| x.clamp(0.0, 1.0));
@@ -105,25 +105,26 @@ impl BlendFactor {
 
         (
             blended_src_color,
-            blended_dst_color,
             blended_src_alpha,
+            blended_dst_color,
             blended_dst_alpha,
         )
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct BlendState {
-    color_blend_op: BlendOp,
-    alpha_blend_op: BlendOp,
-    src_color_blend_factor: BlendFactor,
-    dst_color_blend_factor: BlendFactor,
-    src_alpha_blend_factor: BlendFactor,
-    dst_alpha_blend_factor: BlendFactor,
+    pub color_blend_op: BlendOp,
+    pub alpha_blend_op: BlendOp,
+    pub src_color_blend_factor: BlendFactor,
+    pub dst_color_blend_factor: BlendFactor,
+    pub src_alpha_blend_factor: BlendFactor,
+    pub dst_alpha_blend_factor: BlendFactor,
 }
 
 impl BlendState {
     pub fn blend<T: RgbaFormat>(&self, src: Vector4<f32>, dst: Vector4<f32>) -> Vector4<f32> {
-        let (blended_src_color, blended_dst_color, blended_src_alpha, blended_dst_alpha) =
+        let (blended_src_color, blended_src_alpha, blended_dst_color, blended_dst_alpha) =
             BlendFactor::compute_blended_src_dst::<T>(
                 self.src_color_blend_factor,
                 self.src_alpha_blend_factor,

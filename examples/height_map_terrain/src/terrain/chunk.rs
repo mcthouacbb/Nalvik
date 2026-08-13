@@ -1,12 +1,12 @@
 use cgmath::{InnerSpace, Vector2, vec2, vec3};
 
 use crate::{
-    render::BasicVertexData,
+    render::TerrainVertexData,
     terrain::noise::{Biome, Noise},
 };
 
 pub struct TerrainChunk {
-    mesh: Vec<[BasicVertexData; 3]>,
+    mesh: Vec<[TerrainVertexData; 3]>,
     noise_values: Vec<(f32, Biome)>,
     base_pos: Vector2<i32>,
     size: Vector2<i32>,
@@ -17,7 +17,7 @@ impl TerrainChunk {
         (y * self.size.x + x) as usize
     }
 
-    pub fn mesh(&self) -> &Vec<[BasicVertexData; 3]> {
+    pub fn mesh(&self) -> &Vec<[TerrainVertexData; 3]> {
         &self.mesh
     }
 
@@ -59,15 +59,15 @@ impl TerrainChunk {
 
                 let normal1 = (c - a).cross(b - a).normalize();
                 self.mesh.push([
-                    BasicVertexData::new(a, a_color, normal1),
-                    BasicVertexData::new(c, c_color, normal1),
-                    BasicVertexData::new(b, b_color, normal1),
+                    TerrainVertexData::new(a, a_color, normal1),
+                    TerrainVertexData::new(c, c_color, normal1),
+                    TerrainVertexData::new(b, b_color, normal1),
                 ]);
                 let normal2 = (b - d).cross(c - d).normalize();
                 self.mesh.push([
-                    BasicVertexData::new(b, b_color, normal2),
-                    BasicVertexData::new(c, c_color, normal2),
-                    BasicVertexData::new(d, d_color, normal2),
+                    TerrainVertexData::new(b, b_color, normal2),
+                    TerrainVertexData::new(c, c_color, normal2),
+                    TerrainVertexData::new(d, d_color, normal2),
                 ]);
             }
         }
