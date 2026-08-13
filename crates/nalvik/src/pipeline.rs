@@ -22,6 +22,7 @@ use crate::{
     uniform::{Uniform, Uniforms},
 };
 
+pub mod blend_state;
 pub mod depth_state;
 mod fragment;
 pub mod render_pass;
