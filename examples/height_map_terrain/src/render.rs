@@ -110,7 +110,7 @@ impl AppRenderer for Renderer {
             f32::consts::PI / 3.0,
             self.aspect_ratio(),
             0.25,
-            self.chunk_manager.render_distance() as f32
+            2.0 * self.chunk_manager.render_distance() as f32
                 * CHUNK_SIZE.cast::<f32>().unwrap().magnitude()
                 + 10.0,
         );
