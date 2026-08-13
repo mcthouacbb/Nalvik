@@ -3,9 +3,7 @@ use std::f32;
 use cgmath::{Matrix, Matrix3, Matrix4, Vector2, Vector3, Vector4, prelude::*, vec2, vec3};
 use nalvik::{
     BlendFactor, BlendOp, BlendState, CullMode, DepthState, DepthTest, Image2d, Image2dViewMut,
-    Pipeline, Uniforms, VertexOutput, VertexToFragment,
-    format::{DepthF32, RgbaU8},
-    unit_type_buf,
+    Pipeline, Uniforms, VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
 };
 use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
 
@@ -98,7 +96,7 @@ fn water_fragment_shader(
     // vec3(-0.4, -1, -0.5).normalized()
     const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
     let brightness = 0.5 * (vec3(0.0, 1.0, 0.0).dot(-LIGHT_DIR) + 1.0);
-    (vec3(0.365, 0.702, 0.91) * brightness).extend(0.4)
+    (vec3(0.365, 0.702, 0.92) * brightness).extend(0.7)
 }
 
 pub struct Renderer {
