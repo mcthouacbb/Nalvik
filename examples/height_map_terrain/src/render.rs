@@ -98,7 +98,7 @@ fn water_fragment_shader(
     // vec3(-0.4, -1, -0.5).normalized()
     const LIGHT_DIR: Vector3<f32> = vec3(-0.336860768, -0.84215192, -0.42107596);
     let brightness = 0.5 * (vec3(0.0, 1.0, 0.0).dot(-LIGHT_DIR) + 1.0);
-    (vec3(0.365, 0.702, 0.91) * brightness).extend(0.0)
+    (vec3(0.365, 0.702, 0.91) * brightness).extend(0.4)
 }
 
 pub struct Renderer {

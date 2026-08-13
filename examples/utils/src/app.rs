@@ -1,7 +1,7 @@
 use std::{collections::HashSet, sync::Arc, time::Instant};
 
 use cgmath::{vec2, vec3};
-use pixels::{Pixels, SurfaceTexture};
+use pixels::{Pixels, PixelsBuilder, SurfaceTexture, wgpu};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalSize,
@@ -111,7 +111,13 @@ impl<'a, R: AppRenderer> ApplicationHandler for App<'a, R> {
                 size.height,
                 self.window.as_ref().unwrap().clone(),
             );
-            self.pixels = Some(Pixels::new(size.width, size.height, surface_texture).unwrap());
+            self.pixels = Some(
+                PixelsBuilder::new(size.width, size.height, surface_texture)
+                    .blend_state(wgpu::BlendState::REPLACE)
+                    .alpha_mode(wgpu::CompositeAlphaMode::Opaque)
+                    .build()
+                    .unwrap(),
+            );
         } else {
             self.pixels_mut()
                 .resize_surface(size.width, size.height)
