@@ -55,7 +55,7 @@ pub fn load_model(path: &ModelPath) -> Vec<(Vec<[VertexData; 3]>, Material)> {
                     eprintln!("Could not load assets/checker.png");
                     material = Ok(Material::solid_color(vec4(1.0, 0.0, 1.0, 1.0)));
                 }
-                vec![(cube::cube_model().to_vec(), material.unwrap())]
+                vec![(cube::get_cube_model().to_vec(), material.unwrap())]
             }
             _ => {
                 eprintln!("Unknown builtin model {}", name);

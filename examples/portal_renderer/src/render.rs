@@ -8,14 +8,14 @@ use nalvik::{
     Image2d, Image2dViewMut,
     format::{DepthF32, RgbaU8},
 };
-use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
+use utils::{camera::Camera, projection::perspective_projection, renderer::AppRenderer};
 
 use crate::{
     render::{
         portal::{render_portal_cam, render_portal_surface},
         scene::render_scene_objects,
     },
-    scene::{Scene, scene},
+    scene::{Scene, get_scene},
 };
 
 #[derive(Clone, Copy)]
@@ -52,7 +52,7 @@ impl Renderer {
     pub fn new() -> Self {
         Self {
             depth_buffer: Image2d::new(DepthF32::new(1.0), 0, 0),
-            scene: scene(vec2(0, 0)),
+            scene: get_scene(vec2(0, 0)),
             size: vec2(0, 0),
         }
     }
@@ -84,7 +84,8 @@ impl AppRenderer for Renderer {
 
     fn render(&mut self, pixel_buffer: &mut [u8], camera: &Camera) {
         let view_matrix = camera.view_matrix();
-        let proj_matrix = perspective_proj(f32::consts::PI / 3.0, self.aspect_ratio(), 0.1, 200.0);
+        let proj_matrix =
+            perspective_projection(f32::consts::PI / 3.0, self.aspect_ratio(), 0.1, 200.0);
 
         // clear buffer
         for pix in pixel_buffer.chunks_exact_mut(4) {

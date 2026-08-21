@@ -8,7 +8,7 @@ pub const PERSPECTIVE_CORRECTION: Matrix4<f32> = Matrix4::new(
     0.0, 0.0, 0.5, 1.0
 );
 
-pub fn perspective_proj(fovy: f32, aspect: f32, near: f32, far: f32) -> Matrix4<f32> {
+pub fn perspective_projection(fovy: f32, aspect: f32, near: f32, far: f32) -> Matrix4<f32> {
     PERSPECTIVE_CORRECTION * perspective(Rad(fovy), aspect, near, far)
 }
 

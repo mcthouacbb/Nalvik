@@ -2,7 +2,7 @@ use cgmath::{vec2, vec3};
 
 use crate::models::VertexData;
 
-pub fn cube_model() -> [[VertexData; 3]; 12] {
+pub fn get_cube_model() -> [[VertexData; 3]; 12] {
     // right handed coordinates
     [
         // +z face

@@ -5,7 +5,7 @@ use nalvik::{
     BlendFactor, BlendOp, BlendState, CullMode, DepthState, DepthTest, Image2d, Image2dViewMut,
     Pipeline, Uniforms, VertexOutput, VertexToFragment, format::DepthF32, unit_type_buf,
 };
-use utils::{camera::Camera, projection::perspective_proj, renderer::AppRenderer};
+use utils::{camera::Camera, projection::perspective_projection, renderer::AppRenderer};
 
 use crate::terrain::manager::{CHUNK_SIZE, ChunkManager};
 
@@ -127,7 +127,7 @@ impl AppRenderer for Renderer {
 
     fn render(&mut self, pixel_buffer: &mut [u8], camera: &Camera) {
         let view_matrix = camera.view_matrix();
-        let proj_matrix = perspective_proj(
+        let proj_matrix = perspective_projection(
             f32::consts::PI / 3.0,
             self.aspect_ratio(),
             0.25,

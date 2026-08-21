@@ -6,7 +6,7 @@ use nalvik::{
 
 use crate::{material::Material, render::VertexData};
 
-fn cube_model() -> [[VertexData; 3]; 12] {
+fn get_cube_model() -> [[VertexData; 3]; 12] {
     // right handed coordinates
     [
         // +z face
@@ -90,7 +90,7 @@ fn rectangular_prism(
         * Matrix4::from_angle_z(Rad(rotation.z))
         * Matrix4::from_nonuniform_scale(scale.x, scale.y, scale.z);
 
-    (cube_model().to_vec(), transform, material)
+    (get_cube_model().to_vec(), transform, material)
 }
 
 // portal surfaces are not rotated in this example
@@ -125,7 +125,7 @@ pub struct Scene {
     pub portal1: Portal,
 }
 
-pub fn scene(viewport_size: Vector2<i32>) -> Scene {
+pub fn get_scene(viewport_size: Vector2<i32>) -> Scene {
     let mut room = rectangular_prism(
         vec3(0.0, 0.0, 0.0),
         Vector3::zero(),
